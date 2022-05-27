@@ -37,6 +37,7 @@ import java.time.Instant
 import java.time.temporal.ChronoField
 import kotlin.collections.HashMap
 import java.util.Calendar
+import kotlin.system.exitProcess
 
 
 val mapper: ObjectMapper = ObjectMapper().registerModule(
@@ -232,7 +233,12 @@ class Bot : TelegramLongPollingBot() {
         setCommandsFromList(commandList)
     }
 
-    override fun getBotToken(): String = "5268586133:AAFov8_TL8fArscK8pyyrdli8Bv7ePADFyE"
+    override fun getBotToken(): String = try {
+        File("token").readText(Charsets.UTF_8).trim()
+    } catch (e: Exception) {
+        System.err.println("Токен не распознан или отсутствует. Создайте файл \"token\" в рабочей директории бота и добавьте свой токен туда")
+        exitProcess(1)
+    }
 
     override fun getBotUsername(): String = "howToShitBot"
     override fun onUpdateReceived(update: Update) {
