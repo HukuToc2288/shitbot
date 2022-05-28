@@ -37,6 +37,7 @@ import java.time.Instant
 import java.time.temporal.ChronoField
 import kotlin.collections.HashMap
 import java.util.Calendar
+import java.util.regex.Pattern
 import kotlin.system.exitProcess
 
 
@@ -257,7 +258,12 @@ class Bot : TelegramLongPollingBot() {
                 sendHowToShit(update.message)
                 return
             }
-            val trimmedMessage = update.message.text.trim()
+            val trimmedMessage = messageText.trim()
+
+            if (justBotName(trimmedMessage)) {
+                sendTextMessage(chatId, update.message.from.firstName + " " + update.message.from.lastName)
+                return
+            }
 
             if (!isBotCommand(trimmedMessage))
                 return  // this message is not addressed to bot
@@ -269,6 +275,16 @@ class Bot : TelegramLongPollingBot() {
             println(update.message)
             commandAndArguments.first.function(update.message, commandAndArguments.second)
         }
+    }
+
+    private fun justBotName(message: String): Boolean {
+        for (botPrefix in botPrefixes) {
+            if (message.startsWith(botPrefix, ignoreCase = true)) {
+                val prefix = message.split("[\\p{Punct}\\s]+".toRegex(), limit = 2)[0]
+                return prefix.equals(botPrefix, true)
+            }
+        }
+        return false
     }
 
     private fun addGayOfDay(message: Message, argsLine: String) {
