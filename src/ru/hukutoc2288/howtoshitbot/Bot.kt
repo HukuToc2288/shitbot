@@ -29,6 +29,7 @@ import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
+import java.lang.StringBuilder
 import java.net.InetAddress
 import java.net.Socket
 import java.security.SecureRandom
@@ -136,8 +137,8 @@ class Bot : TelegramLongPollingBot() {
             add(
                 CommandFunction(
                     "help",
-                    "тут ничего нет",
-                    this@Bot::stubCommand,
+                    "вызов справки",
+                    this@Bot::helpCommand,
                     arrayOf("помощь")
                 )
             )
@@ -361,6 +362,27 @@ class Bot : TelegramLongPollingBot() {
 
     private fun stubCommand(message: Message, argsLine: String) {
         sendTextMessage(message.chatId, "Эта команда сейчас отключена. Она будет включена как только я захочу")
+    }
+
+    private fun helpCommand(message: Message, argsLine: String) {
+        val textToSend = StringBuilder()
+        textToSend.append(
+            "Сратьбот понимает команды в двух видах — команды Telegram, начинающиеся с \"/\"," +
+                    " и текстовые команды (написаны в скобках), начинающиеся с обращения \"сратьбот\". " +
+                    "Например, /coin и \"сратьбот монетка\" являются эвивалентными командами. Некоторые команды имеют " +
+                    "<аргументы>, которые следуе вводить после команды, например /can какать или \"сратьбот можно какать\"\n\n " +
+                    "Полный список команд:"
+        )
+        for (commandFunction in commandList) {
+            textToSend.append("\n")
+            textToSend.append("/")
+            textToSend.append(commandFunction.command)
+            textToSend.append(" (")
+            textToSend.append(commandFunction.aliases.joinToString(", "))
+            textToSend.append(") – ")
+            textToSend.append(commandFunction.description)
+        }
+        sendTextMessage(message.chatId, textToSend.toString())
     }
 
     private fun isFromAdmin(message: Message): Boolean {
