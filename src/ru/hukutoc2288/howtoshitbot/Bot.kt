@@ -253,10 +253,7 @@ class Bot : TelegramLongPollingBot() {
             }
 
             // special check for howToShit
-            if (messageText.replace("\\s+".toRegex(), " ")
-                    .lowercase(Locale.getDefault())
-                    .matches(".*как какать.*".toRegex())
-            ) {
+            if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
                 sendHowToShit(update.message)
                 return
             }
