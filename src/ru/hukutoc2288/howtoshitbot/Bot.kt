@@ -260,10 +260,11 @@ class Bot : TelegramLongPollingBot() {
                 sendHowToShit(update.message)
                 return
             }
+            val trimmedMessage = update.message.text.trim()
 
-            if (!isBotCommand(messageText))
+            if (!isBotCommand(trimmedMessage))
                 return  // this message is not addressed to bot
-            val commandAndArguments = findCommand(messageText)
+            val commandAndArguments = findCommand(trimmedMessage)
             if (commandAndArguments == null) {
                 sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
                 return
@@ -733,26 +734,34 @@ class Bot : TelegramLongPollingBot() {
      */
     private fun isBotCommand(message: String): Boolean {
         if (message.startsWith('/')) {
+            // check as command
             val command = message.split(' ', limit = 2)[0]
-            return command.endsWith("@$botUsername", ignoreCase = true)
+            val commandAndBotName = command.split('@', limit = 2)
+            if (commandAndBotName.size == 1) {
+                return findCommand(message) != null
+            }
+            return commandAndBotName[1].equals(botUsername, true)
         }
-        val prefix = message.split("[\\p{Punct}\\s]+".toRegex(), limit = 2)[0]
+        // check by bot alias
         for (botPrefix in botPrefixes) {
-            if (prefix.equals(botPrefix, ignoreCase = true))
-                return true
+            if (message.startsWith(botPrefix, ignoreCase = true)) {
+                val prefix = message.split("[\\p{Punct}\\s]+".toRegex(), limit = 2)[0]
+                return prefix.equals(botPrefix, true)
+            }
         }
         return false
     }
 
     /**
      * If message addressed to bot, try to find command and get arguments line
-     * @return Pair of command and its arguments line (may be empty), or null if nothing fing
+     * @return Pair of command and its arguments line (may be empty), or null if nothing find
      */
     private fun findCommand(commandMessage: String): Pair<CommandFunction, String>? {
         val commandMessage = commandMessage.replace("\\s+".toRegex(), " ")
         if (commandMessage.startsWith('/')) {
-            // search by command
-            val commandName = commandMessage.substring(1, commandMessage.indexOf('@'))
+            // search by commands
+            // we already checked that botname matches
+            val commandName = commandMessage.split(' ', limit = 2)[0].split('@', limit = 2)[0].substring(1)
             for (commandFunction in commandList) {
                 if (commandFunction.command.equals(commandName, ignoreCase = true)) {
                     return if (commandMessage.contains(' '))
