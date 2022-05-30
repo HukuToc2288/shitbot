@@ -609,6 +609,13 @@ class Bot : TelegramLongPollingBot() {
             )
             return
         }
+        if (argsLine.equals("паника", true)) {
+            sendTextMessage(
+                message.chatId,
+                "На этом мои полномочия всё. Прощайте..."
+            )
+            exitProcess(0)
+        }
     }
 
     private fun readOrCreateGdFile(): GayOfDay {
