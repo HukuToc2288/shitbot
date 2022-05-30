@@ -364,30 +364,24 @@ class Bot : TelegramLongPollingBot() {
     }
 
     private fun helpCommand(message: Message, argsLine: String) {
-        Thread {
-            stubCommand(message, argsLine)
-            Thread.sleep(3000)
-            sendTextMessage(message.chatId, "Шутка. Ха-ха")
-            Thread.sleep(3000)
-            val textToSend = StringBuilder()
-            textToSend.append(
-                "Сратьбот понимает команды в двух видах — команды Telegram, начинающиеся с \"/\"," +
-                        " и текстовые команды (написаны в скобках), начинающиеся с обращения \"сратьбот\". " +
-                        "Например, /coin и \"сратьбот монетка\" являются эвивалентными командами. Некоторые команды имеют " +
-                        "<аргументы>, которые следуе вводить после команды, например /can какать или \"сратьбот можно какать\"\n\n " +
-                        "Полный список команд:"
-            )
-            for (commandFunction in commandList) {
-                textToSend.append("\n")
-                textToSend.append("/")
-                textToSend.append(commandFunction.command)
-                textToSend.append(" (")
-                textToSend.append(commandFunction.aliases.joinToString(", "))
-                textToSend.append(") – ")
-                textToSend.append(commandFunction.description)
-            }
-            sendTextMessage(message.chatId, textToSend.toString())
-        }.start()
+        val textToSend = StringBuilder()
+        textToSend.append(
+            "Сратьбот понимает команды в двух видах — команды Telegram, начинающиеся с \"/\"," +
+                    " и текстовые команды (написаны в скобках), начинающиеся с обращения \"сратьбот\". " +
+                    "Например, /coin и \"сратьбот монетка\" являются эвивалентными командами. Некоторые команды имеют " +
+                    "<аргументы>, которые следуе вводить после команды, например /can какать или \"сратьбот можно какать\"\n\n " +
+                    "Полный список команд:"
+        )
+        for (commandFunction in commandList) {
+            textToSend.append("\n")
+            textToSend.append("/")
+            textToSend.append(commandFunction.command)
+            textToSend.append(" (")
+            textToSend.append(commandFunction.aliases.joinToString(", "))
+            textToSend.append(") – ")
+            textToSend.append(commandFunction.description)
+        }
+        sendTextMessage(message.chatId, textToSend.toString())
     }
 
     private fun isFromAdmin(message: Message): Boolean {
