@@ -131,6 +131,7 @@ class Bot : TelegramLongPollingBot() {
     val commandList: ArrayList<CommandFunction>
 
     init {
+        BotProperties.update()
         CurrenciesAliases.setup()
 
         commandList = ArrayList<CommandFunction>().apply {
@@ -268,6 +269,17 @@ class Bot : TelegramLongPollingBot() {
 
             if (!isBotCommand(trimmedMessage))
                 return  // this message is not addressed to bot
+
+            // check maintenance
+            if (BotProperties.maintaining && chatId != BotProperties.debugChatId) {
+                // only basic functions above this line will work
+                sendTextMessage(
+                    chatId,
+                    "Извините, в настоящее время бот отключён со следующим сообщением: "
+                            + BotProperties.maintenanceReason
+                )
+                return
+            }
             val commandAndArguments = findCommand(trimmedMessage)
             if (commandAndArguments == null) {
                 sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
@@ -294,7 +306,7 @@ class Bot : TelegramLongPollingBot() {
             if (!isFromAdmin(message)) {
                 onError(
                     chatId,
-                    "регистрировать других может только админ! Если хочешь зарегистриророваться сам, напиши просто /pidoreg@HowToShitBot без параметров"
+                    "регистрировать других может только админ! Если хочешь зарегистриророваться сам, напиши просто /pidoreg без параметров"
                 )
                 return
             }
