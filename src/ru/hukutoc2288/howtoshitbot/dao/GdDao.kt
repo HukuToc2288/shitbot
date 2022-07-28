@@ -3,6 +3,9 @@ package ru.hukutoc2288.howtoshitbot.dao
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
+import java.sql.Timestamp
+import java.util.*
+import kotlin.collections.HashSet
 
 class GdDao {
     fun getChatById(chatId: Long): GdChat? {
@@ -80,6 +83,53 @@ class GdDao {
                 .apply {
                     setLong(1, userId)
                     setLong(2, chatId)
+                }
+        statement.executeUpdate()
+    }
+
+    fun getUserIdsInChat(chatId: Long): Set<Long> {
+        val connection = GdConnectionFactory.getConnection()
+        val statement =
+            connection.prepareStatement("SELECT user_id FROM users_in_chats WHERE chat_id = ?")
+                .apply {
+                    setLong(1, chatId)
+                }
+        val userIds = HashSet<Long>()
+        if (!statement.execute())
+            return userIds
+        val resultSet = statement.resultSet
+        while (resultSet.next()) {
+            userIds.add(resultSet.getLong("user_id"))
+        }
+        return userIds
+    }
+
+    fun getGayInChat(chatId: Long): GdUser? {
+        val connection = GdConnectionFactory.getConnection()
+        val statement =
+            connection.prepareStatement("SELECT * FROM users JOIN chats ON chats.gayid = users.userid WHERE chatid=?")
+                .apply {
+                    setLong(1, chatId)
+                }
+        if (!statement.execute())
+            return null
+        val resultSet = statement.resultSet
+        if (!resultSet.next())
+            return null
+        return GdUser(
+            resultSet.getLong("userid"),
+            resultSet.getString("displayname")
+        )
+    }
+
+    fun updateGayInChat(playTime: Timestamp, chatId: Long, gayId: Long) {
+        val connection = GdConnectionFactory.getConnection()
+        val statement =
+            connection.prepareStatement("UPDATE chats SET gayid=?, lasttime=? WHERE chatid=?")
+                .apply {
+                    setLong(1, gayId)
+                    setTimestamp(2, playTime)
+                    setLong(3, chatId)
                 }
         statement.executeUpdate()
     }

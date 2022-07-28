@@ -16,7 +16,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.jackson.JacksonConverterFactory
 import ru.hukutoc2288.howtoshitbot.api.CurrenciesApi
 import ru.hukutoc2288.howtoshitbot.entinies.currencies.CurrenciesList
-import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GayOfDay
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
@@ -24,8 +23,11 @@ import kotlin.concurrent.schedule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import org.glassfish.grizzly.http.util.TimeStamp
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
+import ru.hukutoc2288.howtoshitbot.dao.GdDao
+import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
@@ -33,6 +35,7 @@ import java.lang.StringBuilder
 import java.net.InetAddress
 import java.net.Socket
 import java.security.SecureRandom
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.temporal.ChronoField
@@ -52,6 +55,8 @@ val mapper: ObjectMapper = ObjectMapper().registerModule(
         .configure(KotlinFeature.StrictNullChecks, false)
         .build()
 )
+
+val gdDao = GdDao()
 
 class Bot : TelegramLongPollingBot() {
 
@@ -159,14 +164,14 @@ class Bot : TelegramLongPollingBot() {
                     arrayOf("пидор")
                 )
             )
-            add(
-                CommandFunction(
-                    "pidoreg",
-                    "зарегистрироваться в игре \"Пидор дня\"",
-                    this@Bot::addGayOfDay,
-                    arrayOf("пидорег")
-                )
-            )
+//            add(
+//                CommandFunction(
+//                    "pidoreg",
+//                    "зарегистрироваться в игре \"Пидор дня\"",
+//                    this@Bot::addGayOfDay,
+//                    arrayOf("пидорег")
+//                )
+//            )
 
             add(
                 CommandFunction(
@@ -249,6 +254,10 @@ class Bot : TelegramLongPollingBot() {
             val chatId = update.message.chatId
             val messageText = update.message.text
 
+            if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
+                onGdMessageHooked(update.message)
+            }
+
             if (isBotNameSpelledIncorrect(messageText)) {
                 // somebody dare to spell bot name incorrectly, react to that!
                 sendTextMessage(chatId, "Ты как назвал меня, пёс!? Меня зовут Сратьбот, на кириллице в любом регистре!")
@@ -299,66 +308,54 @@ class Bot : TelegramLongPollingBot() {
         return false
     }
 
+    private fun onGdMessageHooked(message: Message) {
+        val chatId = message.chatId
+        val userId = message.from.id
+        if (gdDao.isUserInChat(chatId, userId))
+            return
+        val displayName: String =
+            if (message.from.userName != null)
+                "${message.from.userName}"
+            else
+                "${message.from.firstName} ${message.from.lastName}"
+        addGayOfDayGeneral(chatId, GdUser(userId, displayName))
+        val gdHookMessages = arrayOf(
+            "Оп, пидорок, ты попался на крючок!",
+            "Так-так, кто это тут у нас такой?",
+            "Хах, піймав на вила!"
+        )
+        sendTextMessage(
+            chatId,
+            "${gdHookMessages.random()} ${displayName}, теперь ты участвуешь в игре \"Пидор дня\" в этой беседе"
+        )
+    }
+
+    private fun addGayOfDayGeneral(chatId: Long, gdUser: GdUser) {
+        // FIXME: 27.07.2022 this is bad practice to add chat with every user
+        gdDao.addChat(chatId)
+        gdDao.addUser(gdUser)
+        gdDao.addUserToChat(chatId, gdUser.id)
+    }
+
     private fun addGayOfDay(message: Message, argsLine: String) {
         val chatId = message.chatId
-        if (argsLine.isNotEmpty()) {
-            // register another user as admin
-            if (!isFromAdmin(message)) {
-                onError(
-                    chatId,
-                    "регистрировать других может только админ! Если хочешь зарегистриророваться сам, напиши просто /pidoreg без параметров"
-                )
-                return
-            }
-            for (mention in message.entities) {
-                if (mention.type == "mention") {
-                    // store only username
-                    addGayOfDayAdmin(
-                        chatId,
-                        message.text.substring(mention.offset, mention.offset + mention.length)
-                    )
-                } else if (mention.type == "text_mention") {
-                    // store display name and user id
-                    addGayOfDayAdmin(
-                        chatId,
-                        message.text.substring(mention.offset, mention.offset + mention.length),
-                        mention.user.id
-                    )
-                }
-            }
-            return
-        }
+
         // register user themself
         val userId = message.from.id
         val displayName: String =
             if (message.from.userName != null) "@${message.from.userName}" else "${message.from.firstName} ${message.from.lastName}"
-
-        val chats = readOrCreateGdFile()
-        val chat = chats.getOrCreate(chatId)
-        val existingUser = chat.getOrNull(displayName, userId)
-        if (existingUser != null) {
+        if (gdDao.isUserInChat(chatId, userId)) {
             onError(chatId, "Ты уже участвуешь в игре \"Пидор дня\"")
-            if (existingUser.id == null) {
-                // add id if user haven't it previously
-                existingUser.id = userId
-                try {
-                    updateGdFile(chats)
-                } catch (e: Exception) {
-                    // shouldn't do anything as it's not critical and also it shouldn't normally happen
-                    e.printStackTrace()
-                }
-            }
             return
         }
-        val user = chat.getOrCreate(displayName, userId)
+        addGayOfDayGeneral(chatId, GdUser(userId, displayName))
         try {
-            updateGdFile(chats)
-            val textMention = if (user.displayName.startsWith('@')) {
+            val textMention = if (displayName.startsWith('@')) {
                 //remove @ symbol
-                user.displayName.substring(1)
+                displayName.substring(1)
             } else {
                 //   "<a href=\"tg://user?id=${user.id}\">inline mention of a user</a>"
-                user.displayName
+                displayName
             }
             sendTextMessage(
                 chatId,
@@ -368,7 +365,6 @@ class Bot : TelegramLongPollingBot() {
         } catch (e: Exception) {
             onError(chatId, e.message)
         }
-        onError(chatId)
     }
 
     private fun stubCommand(message: Message, argsLine: String) {
@@ -400,104 +396,79 @@ class Bot : TelegramLongPollingBot() {
         return adminPanelEnabled && (message.from.userName in admins)
     }
 
-    private fun addGayOfDayAdmin(chatId: Long, displayName: String, userId: Long? = null) {
-        val chats = readOrCreateGdFile()
-        val chat = chats.getOrCreate(chatId)
-        if (chat.getOrNull(displayName, userId) != null) {
-            onError(chatId, "Этот пользователь уже участвует в игре \"Пидор дня\"")
-            return
-        }
-        val user = chat.getOrCreate(displayName, userId)
-        try {
-            updateGdFile(chats)
-            val textMention = if (user.displayName.startsWith('@')) {
-                //remove @ symbol
-                user.displayName.substring(1)
-            } else {
-                //   "<a href=\"tg://user?id=${user.id}\">inline mention of a user</a>"
-                user.displayName
-            }
-            sendHtmlMessage(
-                chatId,
-                "$textMention, по велению админа бота теперь ты теперь участвуешь в игре \"Пидор дня\""
-            )
-            return
-        } catch (e: Exception) {
-            onError(chatId, e.message)
-        }
-        onError(chatId)
-    }
-
     private fun getGayOfDay(message: Message, argsLine: String) {
         val chatId = message.chatId
-        val chats = readOrCreateGdFile()
-        val chat = chats.getOrNull(chatId)
+        val chat = gdDao.getChatById(chatId)
+        val userIds = gdDao.getUserIdsInChat(chatId)
         // not enough players branch
-        if (chat == null || chat.users.isNullOrEmpty()) {
+        if (chat == null || userIds.isEmpty()) {
             onError(
                 chatId,
-                "кажется, в этом чате ещё никто не участвует в игре \"Пидор дня\". Чтобы принять участие, напиши \"сратьбот пидорег\""
+                "кажется, в этом чате ещё никто не участвует в игре \"Пидор дня\". Обычно бот сам находит игроков, но, видимо, что-то идёт не так"
             )
             return
         }
-        chat.users?.let {
-            if (it.size < 2) {
-                onError(
-                    chatId,
-                    "чтобы играть в \"Пидор дня\", нужно как минимум два игрока. Прими участие, написав \"сратьбот пидорег\""
-                )
-                return
+        if (userIds.size < 2) {
+            onError(
+                chatId,
+                "чтобы играть в \"Пидор дня\", нужно минимум два игрока. Пользователь автоматически станет игроком, как только напишет сообщение в чат"
+            )
+            return
+        }
+        // now we're playing
+
+        val nowCalendar = GregorianCalendar()
+        val previousCalendar = GregorianCalendar().apply {
+            time = chat.lastTime
+        }
+        val gayUser = gdDao.getGayInChat(chatId)
+        if (gayUser != null && DateUtils.isToday(previousCalendar)) {
+            // gay already chosen branch
+            val tomorrowCalendar = GregorianCalendar().apply {
+                add(Calendar.DATE, 1)
             }
-            val nowCalendar = GregorianCalendar()
-            val previousCalendar = GregorianCalendar().apply {
-                timeInMillis = chat.lastTime
-            }
-            if (DateUtils.isToday(previousCalendar)) {
-                // gay already chosen branch
-                val gayUser = it[chat.gayIndex]
-                val textMention = if (gayUser.id != null) {
-                    "<a href=\"tg://user?id=${gayUser.id}\">${gayUser.displayName}</a>"
-                } else {
-                    gayUser.displayName
-                }
-                val tomorrowCalendar = GregorianCalendar().apply {
-                    add(Calendar.DATE, 1)
-                }
-                val nextTimeString =
-                    if (nowCalendar.get(Calendar.HOUR_OF_DAY) == 23) {
-                        if (nowCalendar.get(Calendar.MINUTE) == 59) {
-                            if (nowCalendar.get(Calendar.SECOND) == 59) {
-                                "сейчас"
-                            } else {
-                                "${60 - tomorrowCalendar.get(Calendar.SECOND)} секунд"
-                            }
+            val nextTimeString =
+                if (nowCalendar.get(Calendar.HOUR_OF_DAY) == 23) {
+                    if (nowCalendar.get(Calendar.MINUTE) == 59) {
+                        if (nowCalendar.get(Calendar.SECOND) == 59) {
+                            "сейчас"
                         } else {
-                            "${60 - tomorrowCalendar.get(Calendar.MINUTE)} минут"
+                            "${60 - tomorrowCalendar.get(Calendar.SECOND)} секунд"
                         }
                     } else {
-                        "${24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)} часов"
+                        "${60 - tomorrowCalendar.get(Calendar.MINUTE)} минут"
                     }
-                sendHtmlMessage(
-                    chatId,
-                    "По результатам розыгрыша, пидор дня сегодня $textMention\n" +
-                            "Следующий розыгрыш можно будет провести через $nextTimeString"
-                )
-                return
-            }
-            // chose new gay branch
-            chat.gayIndex = it.indices.random()
-            chat.lastTime = nowCalendar.timeInMillis
-            updateGdFile(chats)
-            val gayUser = it[chat.gayIndex]
-            val textMention = if (gayUser.id != null) {
-                "<a href=\"tg://user?id=${gayUser.id}\">${gayUser.displayName}</a>"
-            } else {
-                gayUser.displayName
-            }
+                } else {
+                    "${24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)} часов"
+                }
+            sendHtmlMessage(
+                chatId,
+                "По результатам розыгрыша, пидор дня сегодня ${gayUser.displayName}\n" +
+                        "Следующий розыгрыш можно будет провести через $nextTimeString"
+            )
+            return
+        }
+        // chose new gay branch
+        val gayId = userIds.random()
+        val newGayUser = gdDao.getUserById(gayId)
+        if (newGayUser == null) {
+            onError(
+                chatId,
+                "этого не должно было произойти, но это произошло. Обратитесь к админу бота @${BotProperties.adminName}"
+            )
+            return
+        }
+        gdDao.updateGayInChat(Timestamp(nowCalendar.timeInMillis), chatId, gayId)
+        val textMention = "<a href=\"tg://user?id=${newGayUser.id}\">${newGayUser.displayName}</a>"
+        if (gayUser == null)
+            sendTextMessage(
+                chatId,
+                "Хм, похоже пидор дня сегодня уже был выбран, но куда-то исчез. Что ж, проведём внеочередной розыгрыш..."
+            )
+        else
             sendTextMessage(chatId, "Тааак, сейчас посмотрим...")
-            Timer().schedule(3000) {
-                sendHtmlMessage(chatId, "Ага, нашёл его! Пидор дня сегодня $textMention")
-            }
+        Timer().schedule(3000) {
+            sendHtmlMessage(chatId, "Ага, нашёл его! Пидор дня сегодня $textMention")
         }
     }
 
@@ -622,24 +593,6 @@ class Bot : TelegramLongPollingBot() {
             )
             exitProcess(0)
         }
-    }
-
-    private fun readOrCreateGdFile(): GayOfDay {
-        val gayOfDayFile = File("./gayOfDay.json")
-        if (!gayOfDayFile.exists()) {
-            gayOfDayFile.createNewFile()
-        }
-        return try {
-            mapper.readValue(gayOfDayFile, GayOfDay::class.java)
-        } catch (e: Exception) {
-            GayOfDay()
-        }
-    }
-
-    @Throws(Exception::class)
-    private fun updateGdFile(chats: GayOfDay) {
-        val gayOfDayFile = File("./gayOfDay.json")
-        mapper.writeValue(gayOfDayFile, chats)
     }
 
     private fun onError(chatId: Long, text: String? = "неизвестный бибиб") {
