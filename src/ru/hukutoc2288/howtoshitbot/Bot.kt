@@ -324,10 +324,10 @@ class Bot : TelegramLongPollingBot() {
             "Так-так, кто это тут у нас такой?",
             "Хах, піймав на вила!"
         )
-        sendTextMessage(
-            chatId,
-            "${gdHookMessages.random()} ${displayName}, теперь ты участвуешь в игре \"Пидор дня\" в этой беседе"
-        )
+//        sendTextMessage(
+//            chatId,
+//            "${gdHookMessages.random()} ${displayName}, теперь ты участвуешь в игре \"Пидор дня\" в этой беседе"
+//        )
     }
 
     private fun addGayOfDayGeneral(chatId: Long, gdUser: GdUser) {
@@ -459,7 +459,8 @@ class Bot : TelegramLongPollingBot() {
             return
         }
         gdDao.updateGayInChat(Timestamp(nowCalendar.timeInMillis), chatId, gayId)
-        val textMention = "<a href=\"tg://user?id=${newGayUser.id}\">${newGayUser.displayName}</a>"
+        //val textMention = "<a href=\"tg://user?id=${newGayUser.id}\">${newGayUser.displayName}</a>"
+        val textMention = newGayUser.displayName
         if (gayUser == null)
             sendTextMessage(
                 chatId,
