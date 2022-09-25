@@ -602,8 +602,11 @@ class Bot : TelegramLongPollingBot() {
 
     private fun sendHowToShit(message: Message, args: String = "") {
         val sendPhoto = SendPhoto()
-        val imageName = if ((0..9).random() > 0) "/home/huku/Pictures/howToShit.jpg"
-        else "/home/huku/Pictures/howToShitStanding.jpg"
+        val imageName = when ((0..9).random()){
+            0 -> "/home/huku/Pictures/howToShitStanding.jpg"
+            1 -> "/home/huku/Pictures/howToShitBokom.jpg"
+            else -> "/home/huku/Pictures/howToShit.jpg"
+        }
         sendPhoto.photo = InputFile(File(imageName))
         sendPhoto.chatId = message.chatId.toString()
         execute(sendPhoto)
