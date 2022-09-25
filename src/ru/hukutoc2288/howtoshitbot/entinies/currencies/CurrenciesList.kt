@@ -26,7 +26,7 @@ data class CurrenciesList(
         val charCode = charCodeNoCase.uppercase(Locale.getDefault())
         if (charCode == "RUB") {
             // easter egg that returns ruble to ruble exchange rates which exactly equal to 1 ruble
-            return Currency("stub", "0", "RUB", 1, "Российский рубль", 0.9999, 1.0)
+            return Currency("stub", "0", "RUB", 1, "Российский рубль", 1.0, 1.0)
         }
         if (charCode == "SRU") {
             // exchange rate for Programmer Rouble
