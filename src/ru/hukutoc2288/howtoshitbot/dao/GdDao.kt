@@ -8,6 +8,7 @@ import java.util.*
 import kotlin.collections.HashSet
 
 class GdDao {
+    // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
     fun getChatById(chatId: Long): GdChat? {
         val connection = GdConnectionFactory.getConnection()
         val statement = connection.prepareStatement("SELECT * FROM chats WHERE chatid = ?").apply {
@@ -130,6 +131,33 @@ class GdDao {
                     setLong(1, gayId)
                     setTimestamp(2, playTime)
                     setLong(3, chatId)
+                }
+        statement.executeUpdate()
+    }
+
+    // dick
+
+    fun getDick(chatId: Long, userId: Long): Pair<Timestamp, Int>? {
+        val connection = GdConnectionFactory.getConnection()
+        val result = connection.createStatement()
+            .executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=$userId")
+        if (!result.next())
+            return null
+        return result.getTimestamp(1) to result.getInt(2)
+    }
+
+    fun updateDick(chatId: Long, userId: Long, playTime: Timestamp, dick: Int) {
+        val connection = GdConnectionFactory.getConnection()
+        val statement =
+            connection.prepareStatement(
+                "INSERT INTO dicks(chatid, userid, measuretime, dick) VALUES (?,?,?,?)" +
+                        " ON CONFLICT (chatid,userid) DO UPDATE SET dick=excluded.dick,measuretime=excluded.measuretime"
+            )
+                .apply {
+                    setLong(1, chatId)
+                    setLong(2, userId)
+                    setTimestamp(3, playTime)
+                    setInt(4, dick)
                 }
         statement.executeUpdate()
     }

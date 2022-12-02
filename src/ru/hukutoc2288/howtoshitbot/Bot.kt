@@ -23,9 +23,7 @@ import kotlin.concurrent.schedule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import org.glassfish.grizzly.http.util.TimeStamp
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
@@ -34,14 +32,12 @@ import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
 import java.lang.StringBuilder
 import java.net.InetAddress
 import java.net.Socket
-import java.security.SecureRandom
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.temporal.ChronoField
 import kotlin.collections.HashMap
 import java.util.Calendar
-import java.util.regex.Pattern
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.system.exitProcess
 
 
@@ -162,6 +158,14 @@ class Bot : TelegramLongPollingBot() {
                     "найти кто сегодня пидор дня",
                     this@Bot::getGayOfDay,
                     arrayOf("пидор")
+                )
+            )
+            add(
+                CommandFunction(
+                    "dick",
+                    "играть в игру \"Песюн\"",
+                    this@Bot::measureDick,
+                    arrayOf("песюн")
                 )
             )
 //            add(
@@ -473,6 +477,74 @@ class Bot : TelegramLongPollingBot() {
         }
     }
 
+    private fun measureDick(message: Message, argsLine: String) {
+        val chatId = message.chatId
+        val user = message.from
+        val mention = if (user.userName != null) {
+            "@${user.userName}"
+        } else if (user.lastName != null) {
+            "<a href=\"tg://user?id=${user.id}\">${user.firstName} ${user.lastName}</a>"
+        } else {
+            "<a href=\"tg://user?id=${user.id}\">${user.firstName}</a>"
+        }
+        val dickInfo = gdDao.getDick(chatId, message.from.id)
+
+        val nowCalendar = GregorianCalendar()
+        val tomorrowCalendar = GregorianCalendar().apply {
+            add(Calendar.DATE, 1)
+        }
+        val nextTimeString =
+            if (nowCalendar.get(Calendar.HOUR_OF_DAY) == 23) {
+                if (nowCalendar.get(Calendar.MINUTE) == 59) {
+                    if (nowCalendar.get(Calendar.SECOND) == 59) {
+                        "сейчас"
+                    } else {
+                        "${60 - tomorrowCalendar.get(Calendar.SECOND)} секунд"
+                    }
+                } else {
+                    "${60 - tomorrowCalendar.get(Calendar.MINUTE)} минут"
+                }
+            } else {
+                "${24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)} часов"
+            }
+
+        if (dickInfo == null) {
+            // no dick branch
+            val dickSize = (1..10).random()
+            sendHtmlMessage(
+                chatId,
+                "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString"
+            )
+            gdDao.updateDick(chatId, user.id, Timestamp(nowCalendar.timeInMillis), dickSize)
+            return
+        }
+        if (DateUtils.isToday(dickInfo.first)) {
+            // already measured branch
+            sendHtmlMessage(
+                chatId,
+                "$mention, ты сегодня уже играл, и длина твоего песюна ${dickInfo.second} см. Продолжай играть через $nextTimeString"
+            )
+            return
+        }
+
+        // play branch
+        // песюн не может быть менее 1 см (а почему??)
+        val dickChange = (max(-5, -dickInfo.second + 1)..9).random().let {
+            // ага, 0 это 10
+            if (it == 0)
+                10
+            else
+                it
+        }
+        gdDao.updateDick(chatId, user.id, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
+        sendHtmlMessage(
+            chatId,
+            "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +
+                    "Теперь его длина ${dickInfo.second + dickChange} см. Продолжай играть через $nextTimeString"
+        )
+        return
+    }
+
     private fun getExchangeRate(message: Message, argsLine: String) {
         val chatId = message.chatId
         val shitAliases = arrayOf("говно", "говна")
@@ -602,7 +674,7 @@ class Bot : TelegramLongPollingBot() {
 
     private fun sendHowToShit(message: Message, args: String = "") {
         val sendPhoto = SendPhoto()
-        val imageName = when ((0..9).random()){
+        val imageName = when ((0..9).random()) {
             0 -> "/home/huku/Pictures/howToShitStanding.jpg"
             1 -> "/home/huku/Pictures/howToShitBokom.jpg"
             else -> "/home/huku/Pictures/howToShit.jpg"
