@@ -1,12 +1,14 @@
 package ru.hukutoc2288.howtoshitbot.dao
 
 import org.telegram.telegrambots.meta.api.objects.User
+import ru.hukutoc2288.howtoshitbot.entinies.dick.DickTop
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.sql.Timestamp
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
 class GdDao {
@@ -166,5 +168,38 @@ class GdDao {
                     setInt(4, dick)
                 }
         statement.executeUpdate()
+    }
+
+    fun getDickTop(chatId: Long, user: User): List<DickTop> {
+        updateUserName(user)
+        val connection = GdConnectionFactory.getConnection()
+        val result = connection.createStatement()
+            .executeQuery(
+                "select dick,dicks.userid,displayname from dicks" +
+                        " join users on dicks.userid = users.userid" +
+                        " where chatid = $chatId order by dick desc "
+            )
+        var foundMe = false
+        var currentPlace = 0
+        var dickOnPlace = 0
+        val dickTop = ArrayList<DickTop>()
+        while (result.next() && (currentPlace < 10 || !foundMe)) {
+            val dick = result.getInt(1)
+            if (dick != dickOnPlace) {
+                dickOnPlace = dick
+                currentPlace++
+            }
+            val userId = result.getLong(2)
+            val displayName = result.getString(3)
+            if (userId == user.id) {
+                // в любом случае добавляем себя
+                foundMe = true
+                dickTop.add(DickTop(displayName, dick, currentPlace, true))
+            } else if (currentPlace < 10) {
+                // добиваем до 10 мест
+                dickTop.add(DickTop(displayName, dick, currentPlace))
+            }
+        }
+        return dickTop
     }
 }

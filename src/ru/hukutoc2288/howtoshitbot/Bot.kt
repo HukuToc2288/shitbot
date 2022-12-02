@@ -168,6 +168,15 @@ class Bot : TelegramLongPollingBot() {
                     arrayOf("песюн")
                 )
             )
+            // FIXME: 02.12.2022 будет конфликтовать с топом пидоров когда это будет сделано
+            add(
+                CommandFunction(
+                    "top",
+                    "топ песюнов",
+                    this@Bot::showDickTop,
+                    arrayOf()
+                )
+            )
 //            add(
 //                CommandFunction(
 //                    "pidoreg",
@@ -532,6 +541,26 @@ class Bot : TelegramLongPollingBot() {
                     "Теперь его длина ${dickInfo.second + dickChange} см. Продолжай играть через $nextTimeString"
         )
         return
+    }
+
+    private fun showDickTop(message: Message, argsLine: String) {
+        val dickTop = gdDao.getDickTop(message.chatId, message.from)
+        if (dickTop.isEmpty()) {
+            sendTextMessage(
+                message.chatId,
+                "Похоже, в этом чате ещё ни у кого нет песюна. Напиши /dick, чтобы начать играть"
+            )
+            return
+        }
+        val dickMessage = "Топ песюнов:\n\n" + dickTop.joinToString("\n") {
+            val mainLine = "${it.place}. ${it.displayName} — ${it.dickSize} см"
+
+            if (it.isMe)
+                "<b>$mainLine</b>"
+            else
+                mainLine
+        }
+        sendHtmlMessage(message.chatId, dickMessage)
     }
 
     private fun getExchangeRate(message: Message, argsLine: String) {
