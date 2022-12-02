@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
+import org.telegram.telegrambots.meta.api.objects.User
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
-import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
@@ -163,7 +163,7 @@ class Bot : TelegramLongPollingBot() {
             add(
                 CommandFunction(
                     "dick",
-                    "играть в игру \"Песюн\"",
+                    "сыграть в игру \"Песюн\"",
                     this@Bot::measureDick,
                     arrayOf("песюн")
                 )
@@ -317,12 +317,7 @@ class Bot : TelegramLongPollingBot() {
         val userId = message.from.id
         if (gdDao.isUserInChat(chatId, userId))
             return
-        val displayName: String =
-            if (message.from.userName != null)
-                "${message.from.userName}"
-            else
-                "${message.from.firstName} ${message.from.lastName}"
-        addGayOfDayGeneral(chatId, GdUser(userId, displayName))
+        addGayOfDayGeneral(chatId, message.from)
         val gdHookMessages = arrayOf(
             "Оп, пидорок, ты попался на крючок!",
             "Так-так, кто это тут у нас такой?",
@@ -334,11 +329,11 @@ class Bot : TelegramLongPollingBot() {
 //        )
     }
 
-    private fun addGayOfDayGeneral(chatId: Long, gdUser: GdUser) {
+    private fun addGayOfDayGeneral(chatId: Long, user: User) {
         // FIXME: 27.07.2022 this is bad practice to add chat with every user
         gdDao.addChat(chatId)
-        gdDao.addUser(gdUser)
-        gdDao.addUserToChat(chatId, gdUser.id)
+        gdDao.updateUserName(user)
+        gdDao.addUserToChat(chatId, user.id)
     }
 
     private fun addGayOfDay(message: Message, argsLine: String) {
@@ -352,18 +347,11 @@ class Bot : TelegramLongPollingBot() {
             onError(chatId, "Ты уже участвуешь в игре \"Пидор дня\"")
             return
         }
-        addGayOfDayGeneral(chatId, GdUser(userId, displayName))
+        addGayOfDayGeneral(chatId, message.from)
         try {
-            val textMention = if (displayName.startsWith('@')) {
-                //remove @ symbol
-                displayName.substring(1)
-            } else {
-                //   "<a href=\"tg://user?id=${user.id}\">inline mention of a user</a>"
-                displayName
-            }
             sendTextMessage(
                 chatId,
-                "$textMention, тебя никто за язык не тянул, но раз так, то теперь ты участвуешь в игре \"Пидор дня\""
+                "${message.from.displayName}, тебя никто за язык не тянул, но раз так, то теперь ты участвуешь в игре \"Пидор дня\""
             )
             return
         } catch (e: Exception) {
@@ -404,6 +392,7 @@ class Bot : TelegramLongPollingBot() {
         val chatId = message.chatId
         val chat = gdDao.getChatById(chatId)
         val userIds = gdDao.getUserIdsInChat(chatId)
+        gdDao.updateUserName(message.from)
         // not enough players branch
         if (chat == null || userIds.isEmpty()) {
             onError(
@@ -487,7 +476,7 @@ class Bot : TelegramLongPollingBot() {
         } else {
             "<a href=\"tg://user?id=${user.id}\">${user.firstName}</a>"
         }
-        val dickInfo = gdDao.getDick(chatId, message.from.id)
+        val dickInfo = gdDao.getDick(chatId, message.from)
 
         val nowCalendar = GregorianCalendar()
         val tomorrowCalendar = GregorianCalendar().apply {
@@ -515,7 +504,7 @@ class Bot : TelegramLongPollingBot() {
                 chatId,
                 "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString"
             )
-            gdDao.updateDick(chatId, user.id, Timestamp(nowCalendar.timeInMillis), dickSize)
+            gdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickSize)
             return
         }
         if (DateUtils.isToday(dickInfo.first)) {
@@ -536,7 +525,7 @@ class Bot : TelegramLongPollingBot() {
             else
                 it
         }
-        gdDao.updateDick(chatId, user.id, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
+        gdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
         sendHtmlMessage(
             chatId,
             "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +

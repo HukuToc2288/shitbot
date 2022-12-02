@@ -1,8 +1,10 @@
 package ru.hukutoc2288.howtoshitbot.dao
 
+import org.telegram.telegrambots.meta.api.objects.User
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
+import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.sql.Timestamp
 import java.util.*
 import kotlin.collections.HashSet
@@ -67,16 +69,6 @@ class GdDao {
         return resultSet.getBoolean(1)
     }
 
-    fun addUser(user: GdUser) {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("INSERT INTO users values (?,?) ON CONFLICT DO NOTHING").apply {
-                setLong(1, user.id)
-                setString(2, user.displayName)
-            }
-        statement.executeUpdate()
-    }
-
     fun addUserToChat(chatId: Long, userId: Long) {
         val connection = GdConnectionFactory.getConnection()
         val statement =
@@ -137,16 +129,30 @@ class GdDao {
 
     // dick
 
-    fun getDick(chatId: Long, userId: Long): Pair<Timestamp, Int>? {
+    fun updateUserName(user: User) {
+        val connection = GdConnectionFactory.getConnection()
+        val statement = connection.prepareStatement(
+            "INSERT INTO users(userid,displayname) VALUES (?,?)" +
+                    " ON CONFLICT (userid) DO UPDATE SET displayname=excluded.displayname"
+        )
+            .apply {
+                setLong(1, user.id)
+                setString(2, user.displayName)
+            }
+    }
+
+    fun getDick(chatId: Long, user: User): Pair<Timestamp, Int>? {
+        updateUserName(user)
         val connection = GdConnectionFactory.getConnection()
         val result = connection.createStatement()
-            .executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=$userId")
+            .executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=${user.id}")
         if (!result.next())
             return null
         return result.getTimestamp(1) to result.getInt(2)
     }
 
-    fun updateDick(chatId: Long, userId: Long, playTime: Timestamp, dick: Int) {
+    fun updateDick(chatId: Long, user: User, playTime: Timestamp, dick: Int) {
+        updateUserName(user)
         val connection = GdConnectionFactory.getConnection()
         val statement =
             connection.prepareStatement(
@@ -155,7 +161,7 @@ class GdDao {
             )
                 .apply {
                     setLong(1, chatId)
-                    setLong(2, userId)
+                    setLong(2, user.id)
                     setTimestamp(3, playTime)
                     setInt(4, dick)
                 }
