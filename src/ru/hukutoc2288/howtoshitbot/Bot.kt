@@ -508,7 +508,7 @@ class Bot : TelegramLongPollingBot() {
 
         if (dickInfo == null) {
             // no dick branch
-            val dickSize = (1..10).random()
+            val dickSize = gdDao.getAverageDick(message.chatId) ?: (1..10).random()
             sendHtmlMessage(
                 chatId,
                 "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString"
@@ -552,14 +552,16 @@ class Bot : TelegramLongPollingBot() {
             )
             return
         }
-        val dickMessage = "Топ песюнов:\n\n" + dickTop.joinToString("\n") {
-            val mainLine = "${it.place}. ${it.displayName} — ${it.dickSize} см"
+        val averageDick = gdDao.getAverageDick(message.chatId)
+        val dickMessage =
+            "Средняя длина песюна в чате — $averageDick см\n\nТоп песюнов:\n" + dickTop.joinToString("\n") {
+                val mainLine = "${it.place}. ${it.displayName} — ${it.dickSize} см"
 
-            if (it.isMe)
-                "<b>$mainLine</b>"
-            else
-                mainLine
-        }
+                if (it.isMe)
+                    "<b>$mainLine</b>"
+                else
+                    mainLine
+            }
         sendHtmlMessage(message.chatId, dickMessage)
     }
 

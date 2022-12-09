@@ -170,6 +170,16 @@ class GdDao {
         statement.executeUpdate()
     }
 
+    fun getAverageDick(chatId: Long): Int? {
+        val connection = GdConnectionFactory.getConnection()
+        val result = connection.createStatement().executeQuery("select avg(dick) from dicks where chatid=$chatId")
+        if (!result.next())
+            return null
+        val averageDick = result.getDouble(1).toInt()
+        // если игроков ещё нет, то и среднего песюна нет
+        return if (result.wasNull()) null else averageDick
+    }
+
     fun getDickTop(chatId: Long, user: User): List<DickTop> {
         updateUserName(user)
         val connection = GdConnectionFactory.getConnection()
