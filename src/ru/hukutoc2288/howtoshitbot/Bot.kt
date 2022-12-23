@@ -25,6 +25,8 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.objects.User
+import ru.hukutoc2288.howtoshitbot.commands.AnekCommand
+import ru.hukutoc2288.howtoshitbot.commands.KnbCommand
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
@@ -37,7 +39,6 @@ import java.text.SimpleDateFormat
 import kotlin.collections.HashMap
 import java.util.Calendar
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.system.exitProcess
 
 
@@ -52,7 +53,6 @@ val mapper: ObjectMapper = ObjectMapper().registerModule(
         .build()
 )
 
-val gdDao = GdDao()
 
 class Bot : TelegramLongPollingBot() {
 
@@ -137,48 +137,55 @@ class Bot : TelegramLongPollingBot() {
 
         commandList = ArrayList<CommandFunction>().apply {
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "help",
                     "вызов справки",
-                    this@Bot::helpCommand,
                     arrayOf("помощь")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = helpCommand(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "how",
                     "экстренная помощь по вопросам, связанных с процессом дефекации",
-                    this@Bot::sendHowToShit,
                     arrayOf("как какать", "как какать?", "а как какать", "а как какать")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = sendHowToShit(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "pidor",
                     "найти кто сегодня пидор дня",
-                    this@Bot::getGayOfDay,
                     arrayOf("пидор")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = getGayOfDay(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "dick",
                     "сыграть в игру \"Песюн\"",
-                    this@Bot::measureDick,
                     arrayOf("песюн")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = measureDick(message, argsLine)
+                }
             )
             // FIXME: 02.12.2022 будет конфликтовать с топом пидоров когда это будет сделано
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "top",
                     "топ песюнов",
-                    this@Bot::showDickTop,
                     arrayOf()
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = showDickTop(message, argsLine)
+                }
             )
+            add(KnbCommand)
+            add(AnekCommand)
 //            add(
-//                CommandFunction(
+//                object : CommandFunction(
 //                    "pidoreg",
 //                    "зарегистрироваться в игре \"Пидор дня\"",
 //                    this@Bot::addGayOfDay,
@@ -187,68 +194,76 @@ class Bot : TelegramLongPollingBot() {
 //            )
 
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "rate",
                     "<валюта> курс валюты. Для получения списка доступных валют, отправьте команду без параметров",
-                    this@Bot::getExchangeRate,
                     arrayOf("курс")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = getExchangeRate(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "shrug",
                     "пожать плечами",
-                    this@Bot::sendShrug,
                     arrayOf("пожать плечами")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = sendShrug(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "ahegao",
                     "сделать ахегао",
-                    this@Bot::sendFaceArt,
                     arrayOf("ахегао")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = sendFaceArt(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "uptime",
                     "процент доступности сервисов",
-                    this@Bot::getServicesUptime,
                     arrayOf("аптайм")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = getServicesUptime(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "admin",
                     "<команда> администрирование на лету. Если ты простой смертный, тебе не следует пользоваться этой командой",
-                    this@Bot::executeAdminCommand,
                     arrayOf("админ", "админка")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = executeAdminCommand(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "can",
                     "<вопрос> спросить разрешение у Сратьбота на то или иное действие",
-                    this@Bot::sendCan,
                     arrayOf("можно ли", "могу ли я", "можно", "can")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = sendCan(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "coin",
                     "Подбросить монетку",
-                    this@Bot::flipCoin,
                     arrayOf("монетка")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = flipCoin(message, argsLine)
+                }
             )
             add(
-                CommandFunction(
+                object : CommandFunction(
                     "time",
                     "Узнать сколько сейчас времени в классическом и десятичном формате",
-                    this@Bot::sendDecimalTime,
                     arrayOf("время")
-                )
+                ) {
+                    override fun execute(message: Message, argsLine: String) = sendDecimalTime(message, argsLine)
+                }
             )
         }
         setCommandsFromList(commandList)
@@ -263,52 +278,62 @@ class Bot : TelegramLongPollingBot() {
 
     override fun getBotUsername(): String = "howToShitBot"
     override fun onUpdateReceived(update: Update) {
-        if (update.hasMessage() && update.message.hasText()) {
-            val chatId = update.message.chatId
-            val messageText = update.message.text
+        try {
+            if (update.hasMessage() && update.message.hasText()) {
+                val chatId = update.message.chatId
+                val messageText = update.message.text
 
-            if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
-                onGdMessageHooked(update.message)
-            }
+                if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
+                    onGdMessageHooked(update.message)
+                }
 
-            if (isBotNameSpelledIncorrect(messageText)) {
-                // somebody dare to spell bot name incorrectly, react to that!
-                sendTextMessage(chatId, "Ты как назвал меня, пёс!? Меня зовут Сратьбот, на кириллице в любом регистре!")
-                return
-            }
+                if (isBotNameSpelledIncorrect(messageText)) {
+                    // somebody dare to spell bot name incorrectly, react to that!
+                    sendTextMessage(
+                        chatId,
+                        "Ты как назвал меня, пёс!? Меня зовут Сратьбот, на кириллице в любом регистре!"
+                    )
+                    return
+                }
 
-            // special check for howToShit
-            if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
-                sendHowToShit(update.message)
-                return
-            }
-            val trimmedMessage = messageText.trim()
+                // special check for howToShit
+                if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
+                    sendHowToShit(update.message)
+                    return
+                }
+                val trimmedMessage = messageText.trim()
 
-            if (justBotName(trimmedMessage)) {
-                sendTextMessage(chatId, update.message.from.firstName + " " + update.message.from.lastName)
-                return
-            }
+                if (justBotName(trimmedMessage)) {
+                    sendTextMessage(chatId, update.message.from.firstName + " " + update.message.from.lastName)
+                    return
+                }
 
-            if (!isBotCommand(trimmedMessage))
-                return  // this message is not addressed to bot
+                if (!isBotCommand(trimmedMessage))
+                    return  // this message is not addressed to bot
 
-            // check maintenance
-            if (BotProperties.maintaining && chatId != BotProperties.debugChatId) {
-                // only basic functions above this line will work
-                sendTextMessage(
-                    chatId,
-                    "Извините, в настоящее время бот отключён со следующим сообщением: "
-                            + BotProperties.maintenanceReason
-                )
-                return
+                // check maintenance
+                if (BotProperties.maintaining && chatId != BotProperties.debugChatId) {
+                    // only basic functions above this line will work
+                    sendTextMessage(
+                        chatId,
+                        "Извините, в настоящее время бот отключён со следующим сообщением: "
+                                + BotProperties.maintenanceReason
+                    )
+                    return
+                }
+                val commandAndArguments = findCommand(trimmedMessage)
+                if (commandAndArguments == null) {
+                    sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
+                    return
+                }
+                println(update.message)
+                commandAndArguments.first.execute(update.message, commandAndArguments.second)
+            } else if (update.hasCallbackQuery()) {
+                // играем в КНБ
+                KnbCommand.processCallback(update.callbackQuery)
             }
-            val commandAndArguments = findCommand(trimmedMessage)
-            if (commandAndArguments == null) {
-                sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
-                return
-            }
-            println(update.message)
-            commandAndArguments.first.function(update.message, commandAndArguments.second)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -324,7 +349,7 @@ class Bot : TelegramLongPollingBot() {
     private fun onGdMessageHooked(message: Message) {
         val chatId = message.chatId
         val userId = message.from.id
-        if (gdDao.isUserInChat(chatId, userId))
+        if (GdDao.isUserInChat(chatId, userId))
             return
         addGayOfDayGeneral(chatId, message.from)
         val gdHookMessages = arrayOf(
@@ -340,9 +365,9 @@ class Bot : TelegramLongPollingBot() {
 
     private fun addGayOfDayGeneral(chatId: Long, user: User) {
         // FIXME: 27.07.2022 this is bad practice to add chat with every user
-        gdDao.addChat(chatId)
-        gdDao.updateUserName(user)
-        gdDao.addUserToChat(chatId, user.id)
+        GdDao.addChat(chatId)
+        GdDao.updateUserName(user)
+        GdDao.addUserToChat(chatId, user.id)
     }
 
     private fun addGayOfDay(message: Message, argsLine: String) {
@@ -352,7 +377,7 @@ class Bot : TelegramLongPollingBot() {
         val userId = message.from.id
         val displayName: String =
             if (message.from.userName != null) "@${message.from.userName}" else "${message.from.firstName} ${message.from.lastName}"
-        if (gdDao.isUserInChat(chatId, userId)) {
+        if (GdDao.isUserInChat(chatId, userId)) {
             onError(chatId, "Ты уже участвуешь в игре \"Пидор дня\"")
             return
         }
@@ -399,9 +424,9 @@ class Bot : TelegramLongPollingBot() {
 
     private fun getGayOfDay(message: Message, argsLine: String) {
         val chatId = message.chatId
-        val chat = gdDao.getChatById(chatId)
-        val userIds = gdDao.getUserIdsInChat(chatId)
-        gdDao.updateUserName(message.from)
+        val chat = GdDao.getChatById(chatId)
+        val userIds = GdDao.getUserIdsInChat(chatId)
+        GdDao.updateUserName(message.from)
         // not enough players branch
         if (chat == null || userIds.isEmpty()) {
             onError(
@@ -423,7 +448,7 @@ class Bot : TelegramLongPollingBot() {
         val previousCalendar = GregorianCalendar().apply {
             time = chat.lastTime
         }
-        val gayUser = gdDao.getGayInChat(chatId)
+        val gayUser = GdDao.getGayInChat(chatId)
         if (gayUser != null && DateUtils.isToday(previousCalendar)) {
             // gay already chosen branch
             val tomorrowCalendar = GregorianCalendar().apply {
@@ -452,7 +477,7 @@ class Bot : TelegramLongPollingBot() {
         }
         // chose new gay branch
         val gayId = userIds.random()
-        val newGayUser = gdDao.getUserById(gayId)
+        val newGayUser = GdDao.getUserById(gayId)
         if (newGayUser == null) {
             onError(
                 chatId,
@@ -460,7 +485,7 @@ class Bot : TelegramLongPollingBot() {
             )
             return
         }
-        gdDao.updateGayInChat(Timestamp(nowCalendar.timeInMillis), chatId, gayId)
+        GdDao.updateGayInChat(Timestamp(nowCalendar.timeInMillis), chatId, gayId)
         //val textMention = "<a href=\"tg://user?id=${newGayUser.id}\">${newGayUser.displayName}</a>"
         val textMention = newGayUser.displayName
         if (gayUser == null)
@@ -485,7 +510,7 @@ class Bot : TelegramLongPollingBot() {
         } else {
             "<a href=\"tg://user?id=${user.id}\">${user.firstName}</a>"
         }
-        val dickInfo = gdDao.getDick(chatId, message.from)
+        val dickInfo = GdDao.getDick(chatId, message.from)
 
         val nowCalendar = GregorianCalendar()
         val tomorrowCalendar = GregorianCalendar().apply {
@@ -508,12 +533,12 @@ class Bot : TelegramLongPollingBot() {
 
         if (dickInfo == null) {
             // no dick branch
-            val dickSize = gdDao.getAverageDick(message.chatId) ?: (1..10).random()
+            val dickSize = GdDao.getAverageDick(message.chatId) ?: (1..10).random()
             sendHtmlMessage(
                 chatId,
                 "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString"
             )
-            gdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickSize)
+            GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickSize)
             return
         }
         if (DateUtils.isToday(dickInfo.first)) {
@@ -534,17 +559,26 @@ class Bot : TelegramLongPollingBot() {
             else
                 it
         }
-        gdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
+        GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
         sendHtmlMessage(
             chatId,
             "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +
-                    "Теперь его длина ${dickInfo.second + dickChange} см. Продолжай играть через $nextTimeString"
+                    "Теперь его длина ${dickInfo.second + dickChange} см. Продолжай играть через $nextTimeString" +
+                    if (dickInfo.second + dickChange <= KnbCommand.bet &&
+                        KnbCommand.waitingPlayers[chatId]?.first?.id == user.id && KnbCommand.waitingPlayers.remove(
+                            chatId
+                        ) != null
+                    ) {
+                        "\n\nДлина твоего песюна стала меньше ${KnbCommand.bet + 1} см, поэтому ты исключён из игры ${KnbCommand.gameTitle}"
+                    } else {
+                        ""
+                    }
         )
         return
     }
 
     private fun showDickTop(message: Message, argsLine: String) {
-        val dickTop = gdDao.getDickTop(message.chatId, message.from)
+        val dickTop = GdDao.getDickTop(message.chatId, message.from)
         if (dickTop.isEmpty()) {
             sendTextMessage(
                 message.chatId,
@@ -552,7 +586,7 @@ class Bot : TelegramLongPollingBot() {
             )
             return
         }
-        val averageDick = gdDao.getAverageDick(message.chatId)
+        val averageDick = GdDao.getAverageDick(message.chatId)
         val dickMessage =
             "Средняя длина песюна в чате — $averageDick см\n\nТоп песюнов:\n" + dickTop.joinToString("\n") {
                 val mainLine = "${it.place}. ${it.displayName} — ${it.dickSize} см"
@@ -803,14 +837,14 @@ class Bot : TelegramLongPollingBot() {
         )
     }
 
-    private fun sendTextMessage(chatId: Long, text: String) {
+    fun sendTextMessage(chatId: Long, text: String) {
         val message = SendMessage()
         message.text = text
         message.chatId = chatId.toString()
         execute(message)
     }
 
-    private fun sendHtmlMessage(chatId: Long, text: String) {
+    fun sendHtmlMessage(chatId: Long, text: String) {
         val message = SendMessage()
         message.text = text
         message.parseMode = ParseMode.HTML

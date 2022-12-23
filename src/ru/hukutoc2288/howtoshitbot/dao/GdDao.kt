@@ -6,12 +6,13 @@ import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
+import java.io.Closeable
 import java.sql.Timestamp
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
-class GdDao {
+object GdDao {
     // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
     fun getChatById(chatId: Long): GdChat? {
         val connection = GdConnectionFactory.getConnection()
@@ -211,5 +212,31 @@ class GdDao {
             }
         }
         return dickTop
+    }
+
+    fun getRandomAnek(): Pair<Int,String>? {
+        val resources = ArrayList<AutoCloseable>()
+        try {
+            val connection = GdConnectionFactory.getConnection().apply { resources.add(this) }
+            val result = connection.createStatement().executeQuery(
+                "select id,text from aneks where index = (select trunc(random()*(select index from aneks" +
+                        " order by index desc limit 1)+1))"
+            ).apply { resources.add(this) }
+            if (!result.next())
+                return null
+            return result.getInt(1) to result.getString(2)
+        } finally {
+            closeResources(resources)
+        }
+    }
+    
+    private fun closeResources(resources: Collection<AutoCloseable>){
+        for (c in resources) {
+            try {
+                c.close()
+            } catch (_: Exception){
+                // pass
+            }
+        }
     }
 }
