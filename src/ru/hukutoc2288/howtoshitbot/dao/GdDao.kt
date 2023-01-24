@@ -214,13 +214,19 @@ object GdDao {
         return dickTop
     }
 
-    fun getRandomAnek(): Pair<Int,String>? {
+    fun getRandomAnek(minRating: Int): Pair<Int, String>? {
         val resources = ArrayList<AutoCloseable>()
         try {
             val connection = GdConnectionFactory.getConnection().apply { resources.add(this) }
+            val anekIds = ArrayList<Int>()
+            val idsResult = connection.createStatement()
+                .executeQuery("select id from aneks where rating>=$minRating")
+                .apply { resources.add(this) }
+            while (idsResult.next())
+                anekIds.add(idsResult.getInt(1))
+            val randomAnekId = anekIds.random()
             val result = connection.createStatement().executeQuery(
-                "select id,text from aneks where index = (select trunc(random()*(select index from aneks" +
-                        " order by index desc limit 1)+1))"
+                "select id,text from aneks where id=$randomAnekId limit 1"
             ).apply { resources.add(this) }
             if (!result.next())
                 return null
@@ -229,12 +235,12 @@ object GdDao {
             closeResources(resources)
         }
     }
-    
-    private fun closeResources(resources: Collection<AutoCloseable>){
+
+    private fun closeResources(resources: Collection<AutoCloseable>) {
         for (c in resources) {
             try {
                 c.close()
-            } catch (_: Exception){
+            } catch (_: Exception) {
                 // pass
             }
         }

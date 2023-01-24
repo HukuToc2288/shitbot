@@ -1,8 +1,11 @@
 package ru.hukutoc2288.howtoshitbot.commands
 
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery
+import org.telegram.telegrambots.meta.api.methods.ParseMode
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.User
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
@@ -11,16 +14,20 @@ import ru.hukutoc2288.howtoshitbot.bot
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
 import ru.hukutoc2288.howtoshitbot.utils.mention
+import java.io.File
+import java.util.Calendar
+import java.util.GregorianCalendar
+import kotlin.time.Duration.Companion.seconds
 
 
 private val gameTitle = "\"Камень, ножницы, бумага\""
+
 object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitle") {
 
     val gameTitle = "\"Камень, ножницы, бумага\""
     private val choices = arrayOf("камень ✊", "ножницы ✌", "бумага \uD83E\uDD1A")
     val waitingPlayers = HashMap<Long, Pair<User, Int>>()
     val bet = 5
-
 
     override fun execute(message: Message, argsLine: String) {
         val keyboard = InlineKeyboardMarkup(listOf(arrayListOf(), arrayListOf())).apply {
@@ -65,6 +72,7 @@ object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitl
                 showAlert = false
                 text = answerText
             })
+            return
         }
         val dickSize = GdDao.getDick(chatId, newPlayer)?.second
         if (dickSize == null) {
@@ -94,11 +102,20 @@ object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitl
                 text = "Ты выбрал ${choices[callbackChoice]}, теперь ждём второго игрока"
             })
         } else {
+            val isSundownerTime = checkSundownerTime()
             // another player found, let's play
             val x = waitingPlayer.second - callbackChoice
-            // fuck it, cubic parabola
-            val result = x * x * x - 3 * x
-            val resultMessage = "Камень, ножницы, бумага, су-е-фа!\n" +
+            val result = if (isSundownerTime && waitingPlayer.second == 0 && callbackChoice == 1) {
+                // Sundowner will appear only when one player chose scissors, and another rock
+                -100
+            } else if (isSundownerTime && waitingPlayer.second == 1 && callbackChoice == 0) {
+                // I'm fucking invincible!
+                100
+            } else {
+                // fuck it, cubic parabola
+                x * x * x - 3 * x
+            }
+            var resultMessage = "Камень, ножницы, бумага, су-е-фа!\n" +
                     "${newPlayer.mention}, ты выбрал ${choices[callbackChoice]}," +
                     " твой соперник ${waitingPlayer.first.mention} выбрал ${choices[waitingPlayer.second]} и " +
                     when {
@@ -107,24 +124,43 @@ object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitl
                         else -> "у вас ничья. Все остаются при своих песюнах."
                     } +
                     " играй снова командой /knb"
-            if (result > 0){
-                GdDao.getDick(chatId,newPlayer)?.let {
-                    GdDao.updateDick(chatId,newPlayer,it.first,it.second-bet)
+
+            if (result > 0) {
+                GdDao.getDick(chatId, newPlayer)?.let {
+                    GdDao.updateDick(chatId, newPlayer, it.first, it.second - bet)
                 }
-                GdDao.getDick(chatId,waitingPlayer.first)?.let {
-                    GdDao.updateDick(chatId,waitingPlayer.first,it.first,it.second+bet)
+                GdDao.getDick(chatId, waitingPlayer.first)?.let {
+                    GdDao.updateDick(chatId, waitingPlayer.first, it.first, it.second + bet)
                 }
-            } else if (result < 0){
-                GdDao.getDick(chatId,newPlayer)?.let {
-                    GdDao.updateDick(chatId,newPlayer,it.first,it.second+bet)
+            } else if (result < 0) {
+                GdDao.getDick(chatId, newPlayer)?.let {
+                    GdDao.updateDick(chatId, newPlayer, it.first, it.second + bet)
                 }
-                GdDao.getDick(chatId,waitingPlayer.first)?.let {
-                    GdDao.updateDick(chatId,waitingPlayer.first,it.first,it.second-bet)
+                GdDao.getDick(chatId, waitingPlayer.first)?.let {
+                    GdDao.updateDick(chatId, waitingPlayer.first, it.first, it.second - bet)
                 }
             }
             waitingPlayers.remove(chatId)
-            bot.sendHtmlMessage(chatId, resultMessage)
+            if (result !in -99..99) {
+                // process sundowner
+                val sendPhoto = SendPhoto()
+                val imageName = "/home/huku/Pictures/sundownerScissors.jpg"
+                sendPhoto.photo = InputFile(File(imageName))
+                sendPhoto.chatId = chatId.toString()
+                sendPhoto.caption = "$resultMessage\n\nАх да, 24-го числа каждого месяца с 12 до 18 часов" +
+                        " к нам приходит особый гость, и ножницы побеждают камень\n\nI'm fucking invincible!"
+                sendPhoto.parseMode = ParseMode.HTML
+                bot.execute(sendPhoto)
+            } else {
+                // process main
+                bot.sendHtmlMessage(chatId, resultMessage)
+            }
         }
         //bot.sendTextMessage(callbackQuery.me.ssage.chatId, callbackQuery.data)
+    }
+
+    private fun checkSundownerTime(): Boolean {
+        val calendar = GregorianCalendar()
+        return (calendar.get(Calendar.DAY_OF_MONTH) == 24 && (calendar.get(Calendar.HOUR_OF_DAY) in 12 until 18))
     }
 }
