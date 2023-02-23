@@ -6,218 +6,331 @@ import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
-import java.io.Closeable
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.Statement
 import java.sql.Timestamp
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
 object GdDao {
 
-    var aneksCount = 0;
+    private var aneksCount = 0
 
     // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
     fun getChatById(chatId: Long): GdChat? {
-        val connection = GdConnectionFactory.getConnection()
-        val statement = connection.prepareStatement("SELECT * FROM chats WHERE chatid = ?").apply {
-            setLong(1, chatId)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.prepareStatement("SELECT * FROM chats WHERE chatid = ?").apply {
+                setLong(1, chatId)
+            }
+            if (!statement.execute())
+                return null
+            resultSet = statement.resultSet
+            if (!resultSet.next())
+                return null
+            return GdChat(
+                resultSet.getLong("chatid"),
+                resultSet.getLong("gayid"),
+                resultSet.getTimestamp("lasttime")
+            )
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
-        if (!statement.execute())
-            return null
-        val resultSet = statement.resultSet
-        if (!resultSet.next())
-            return null
-        return GdChat(
-            resultSet.getLong("chatid"),
-            resultSet.getLong("gayid"),
-            resultSet.getTimestamp("lasttime")
-        )
+
     }
 
     fun addChat(chatId: Long) {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("INSERT INTO chats (chatid) VALUES (?) ON CONFLICT DO NOTHING").apply {
-                setLong(1, chatId)
-            }
-        statement.executeUpdate()
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("INSERT INTO chats (chatid) VALUES (?) ON CONFLICT DO NOTHING").apply {
+                    setLong(1, chatId)
+                }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun getUserById(userId: Long): GdUser? {
-        val connection = GdConnectionFactory.getConnection()
-        val statement = connection.prepareStatement("SELECT * FROM users WHERE userid = ?").apply {
-            setLong(1, userId)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.prepareStatement("SELECT * FROM users WHERE userid = ?").apply {
+                setLong(1, userId)
+            }
+            if (!statement.execute())
+                return null
+            resultSet = statement.resultSet
+            if (!resultSet.next())
+                return null
+            return GdUser(
+                resultSet.getLong("userid"),
+                resultSet.getString("displayname")
+            )
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
-        if (!statement.execute())
-            return null
-        val resultSet = statement.resultSet
-        if (!resultSet.next())
-            return null
-        return GdUser(
-            resultSet.getLong("userid"),
-            resultSet.getString("displayname")
-        )
     }
 
     fun isUserInChat(chatId: Long, userId: Long): Boolean {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("SELECT EXISTS(SELECT 1 FROM users_in_chats WHERE chat_id = ? AND user_id = ?)")
-                .apply {
-                    setLong(1, chatId)
-                    setLong(2, userId)
-                }
-        if (!statement.execute())
-            return false
-        val resultSet = statement.resultSet
-        if (!resultSet.next())
-            return false
-        return resultSet.getBoolean(1)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("SELECT EXISTS(SELECT 1 FROM users_in_chats WHERE chat_id = ? AND user_id = ?)")
+                    .apply {
+                        setLong(1, chatId)
+                        setLong(2, userId)
+                    }
+            if (!statement.execute())
+                return false
+            resultSet = statement.resultSet
+            if (!resultSet.next())
+                return false
+            return resultSet.getBoolean(1)
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun addUserToChat(chatId: Long, userId: Long) {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("INSERT INTO users_in_chats (user_id, chat_id) VALUES (?,?) ON CONFLICT DO NOTHING")
-                .apply {
-                    setLong(1, userId)
-                    setLong(2, chatId)
-                }
-        statement.executeUpdate()
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("INSERT INTO users_in_chats (user_id, chat_id) VALUES (?,?) ON CONFLICT DO NOTHING")
+                    .apply {
+                        setLong(1, userId)
+                        setLong(2, chatId)
+                    }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun getUserIdsInChat(chatId: Long): Set<Long> {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("SELECT user_id FROM users_in_chats WHERE chat_id = ?")
-                .apply {
-                    setLong(1, chatId)
-                }
-        val userIds = HashSet<Long>()
-        if (!statement.execute())
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.prepareStatement("SELECT user_id FROM users_in_chats WHERE chat_id = ?").apply {
+                setLong(1, chatId)
+            }
+            val userIds = HashSet<Long>()
+            if (!statement.execute())
+                return userIds
+            resultSet = statement.resultSet
+            while (resultSet.next()) {
+                userIds.add(resultSet.getLong("user_id"))
+            }
             return userIds
-        val resultSet = statement.resultSet
-        while (resultSet.next()) {
-            userIds.add(resultSet.getLong("user_id"))
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
-        return userIds
     }
 
     fun getGayInChat(chatId: Long): GdUser? {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("SELECT * FROM users JOIN chats ON chats.gayid = users.userid WHERE chatid=?")
-                .apply {
-                    setLong(1, chatId)
-                }
-        if (!statement.execute())
-            return null
-        val resultSet = statement.resultSet
-        if (!resultSet.next())
-            return null
-        return GdUser(
-            resultSet.getLong("userid"),
-            resultSet.getString("displayname")
-        )
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("SELECT * FROM users JOIN chats ON chats.gayid = users.userid WHERE chatid=?")
+                    .apply {
+                        setLong(1, chatId)
+                    }
+            if (!statement.execute())
+                return null
+            resultSet = statement.resultSet
+            if (!resultSet.next())
+                return null
+            return GdUser(
+                resultSet.getLong("userid"),
+                resultSet.getString("displayname")
+            )
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun updateGayInChat(playTime: Timestamp, chatId: Long, gayId: Long) {
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement("UPDATE chats SET gayid=?, lasttime=? WHERE chatid=?")
-                .apply {
-                    setLong(1, gayId)
-                    setTimestamp(2, playTime)
-                    setLong(3, chatId)
-                }
-        statement.executeUpdate()
+
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("UPDATE chats SET gayid=?, lasttime=? WHERE chatid=?")
+                    .apply {
+                        setLong(1, gayId)
+                        setTimestamp(2, playTime)
+                        setLong(3, chatId)
+                    }
+            statement.executeUpdate()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
     }
 
     // dick
 
     fun updateUserName(user: User) {
-        val connection = GdConnectionFactory.getConnection()
-        val statement = connection.prepareStatement(
-            "INSERT INTO users(userid,displayname) VALUES (?,?)" +
-                    " ON CONFLICT (userid) DO UPDATE SET displayname=excluded.displayname"
-        )
-            .apply {
-                setLong(1, user.id)
-                setString(2, user.displayName)
-            }
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.prepareStatement(
+                "INSERT INTO users(userid,displayname) VALUES (?,?)" +
+                        " ON CONFLICT (userid) DO UPDATE SET displayname=excluded.displayname"
+            )
+                .apply {
+                    setLong(1, user.id)
+                    setString(2, user.displayName)
+                }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun getDick(chatId: Long, user: User): Pair<Timestamp, Int>? {
         updateUserName(user)
-        val connection = GdConnectionFactory.getConnection()
-        val result = connection.createStatement()
-            .executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=${user.id}")
-        if (!result.next())
-            return null
-        return result.getTimestamp(1) to result.getInt(2)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet =
+                statement.executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=${user.id}")
+            if (!resultSet.next())
+                return null
+            return resultSet.getTimestamp(1) to resultSet.getInt(2)
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun updateDick(chatId: Long, user: User, playTime: Timestamp, dick: Int) {
         updateUserName(user)
-        val connection = GdConnectionFactory.getConnection()
-        val statement =
-            connection.prepareStatement(
-                "INSERT INTO dicks(chatid, userid, measuretime, dick) VALUES (?,?,?,?)" +
-                        " ON CONFLICT (chatid,userid) DO UPDATE SET dick=excluded.dick,measuretime=excluded.measuretime"
-            )
-                .apply {
-                    setLong(1, chatId)
-                    setLong(2, user.id)
-                    setTimestamp(3, playTime)
-                    setInt(4, dick)
-                }
-        statement.executeUpdate()
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement(
+                    "INSERT INTO dicks(chatid, userid, measuretime, dick) VALUES (?,?,?,?)" +
+                            " ON CONFLICT (chatid,userid) DO UPDATE" +
+                            " SET dick=excluded.dick,measuretime=excluded.measuretime"
+                )
+                    .apply {
+                        setLong(1, chatId)
+                        setLong(2, user.id)
+                        setTimestamp(3, playTime)
+                        setInt(4, dick)
+                    }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun getAverageDick(chatId: Long): Int? {
-        val connection = GdConnectionFactory.getConnection()
-        val result = connection.createStatement().executeQuery("select avg(dick) from dicks where chatid=$chatId")
-        if (!result.next())
-            return null
-        val averageDick = result.getDouble(1).toInt()
-        // если игроков ещё нет, то и среднего песюна нет
-        return if (result.wasNull()) null else averageDick
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery("select avg(dick) from dicks where chatid=$chatId")
+            if (!resultSet.next())
+                return null
+            val averageDick = resultSet.getDouble(1).toInt()
+            // если игроков ещё нет, то и среднего песюна нет
+            return if (resultSet.wasNull()) null else averageDick
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
     }
 
     fun getDickTop(chatId: Long, user: User): List<DickTop> {
         updateUserName(user)
-        val connection = GdConnectionFactory.getConnection()
-        val result = connection.createStatement()
-            .executeQuery(
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
                 "select dick,dicks.userid,displayname from dicks" +
                         " join users on dicks.userid = users.userid" +
                         " where chatid = $chatId order by dick desc "
             )
-        var foundMe = false
-        var currentPlace = 0
-        var dickOnPlace = 0
-        val dickTop = ArrayList<DickTop>()
-        while (result.next() && (currentPlace < 10 || !foundMe)) {
-            val dick = result.getInt(1)
-            if (dick != dickOnPlace) {
-                dickOnPlace = dick
-                currentPlace++
+            var foundMe = false
+            var currentPlace = 0
+            var dickOnPlace = 0
+            val dickTop = ArrayList<DickTop>()
+            while (resultSet.next() && (currentPlace < 10 || !foundMe)) {
+                val dick = resultSet.getInt(1)
+                if (dick != dickOnPlace) {
+                    dickOnPlace = dick
+                    currentPlace++
+                }
+                val userId = resultSet.getLong(2)
+                val displayName = resultSet.getString(3)
+                if (userId == user.id) {
+                    // в любом случае добавляем себя
+                    foundMe = true
+                    dickTop.add(DickTop(displayName, dick, currentPlace, true))
+                } else if (currentPlace < 10) {
+                    // добиваем до 10 мест
+                    dickTop.add(DickTop(displayName, dick, currentPlace))
+                }
             }
-            val userId = result.getLong(2)
-            val displayName = result.getString(3)
-            if (userId == user.id) {
-                // в любом случае добавляем себя
-                foundMe = true
-                dickTop.add(DickTop(displayName, dick, currentPlace, true))
-            } else if (currentPlace < 10) {
-                // добиваем до 10 мест
-                dickTop.add(DickTop(displayName, dick, currentPlace))
-            }
+            return dickTop
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
-        return dickTop
     }
 
     fun prepareAneksCache(minRating: Int) {
@@ -232,6 +345,7 @@ object GdDao {
             statement.execute("INSERT INTO desired_aneks_ids(id) SELECT id FROM aneks WHERE rating>=$minRating")
             statement.execute("ALTER TABLE desired_aneks_ids ADD PRIMARY KEY (id)")
             statement.execute("CREATE INDEX desired_aneks_index_index ON desired_aneks_ids(index)")
+            connection.commit()
             // get total aneks count
             resultSet = statement.executeQuery("SELECT count(*) FROM desired_aneks_ids")
             resultSet.next()
@@ -244,28 +358,23 @@ object GdDao {
     }
 
     fun getRandomAnek(): Pair<Int, String>? {
-        val resources = ArrayList<AutoCloseable>()
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
         try {
-            val connection = GdConnectionFactory.getConnection().apply { resources.add(this) }
+            connection = GdConnectionFactory.getConnection()
             val randomAnekIndex = (1..aneksCount).random()
-            val result = connection.createStatement().executeQuery(
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
                 "select id,text from aneks where id = (select id from desired_aneks_ids where index = $randomAnekIndex);"
-            ).apply { resources.add(this) }
-            if (!result.next())
+            )
+            if (!resultSet.next())
                 return null
-            return result.getInt(1) to result.getString(2)
+            return resultSet.getInt(1) to resultSet.getString(2)
         } finally {
-            closeResources(resources)
-        }
-    }
-
-    private fun closeResources(resources: Collection<AutoCloseable>) {
-        for (c in resources) {
-            try {
-                c.close()
-            } catch (_: Exception) {
-                // pass
-            }
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
     }
 }
