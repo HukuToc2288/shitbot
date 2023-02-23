@@ -7,12 +7,18 @@ import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.io.Closeable
+import java.sql.Connection
+import java.sql.ResultSet
+import java.sql.Statement
 import java.sql.Timestamp
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
 object GdDao {
+
+    var aneksCount = 0;
+
     // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
     fun getChatById(chatId: Long): GdChat? {
         val connection = GdConnectionFactory.getConnection()
@@ -214,19 +220,36 @@ object GdDao {
         return dickTop
     }
 
-    fun getRandomAnek(minRating: Int): Pair<Int, String>? {
+    fun prepareAneksCache(minRating: Int) {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            statement.execute("DROP TABLE IF EXISTS  desired_aneks_ids")
+            statement.execute("CREATE TABLE desired_aneks_ids (id INT, index SERIAL)")
+            statement.execute("INSERT INTO desired_aneks_ids(id) SELECT id FROM aneks WHERE rating>=$minRating")
+            statement.execute("ALTER TABLE desired_aneks_ids ADD PRIMARY KEY (id)")
+            statement.execute("CREATE INDEX desired_aneks_index_index ON desired_aneks_ids(index)")
+            // get total aneks count
+            resultSet = statement.executeQuery("SELECT count(*) FROM desired_aneks_ids")
+            resultSet.next()
+            aneksCount = resultSet.getInt(1)
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun getRandomAnek(): Pair<Int, String>? {
         val resources = ArrayList<AutoCloseable>()
         try {
             val connection = GdConnectionFactory.getConnection().apply { resources.add(this) }
-            val anekIds = ArrayList<Int>()
-            val idsResult = connection.createStatement()
-                .executeQuery("select id from aneks where rating>=$minRating")
-                .apply { resources.add(this) }
-            while (idsResult.next())
-                anekIds.add(idsResult.getInt(1))
-            val randomAnekId = anekIds.random()
+            val randomAnekIndex = (1..aneksCount).random()
             val result = connection.createStatement().executeQuery(
-                "select id,text from aneks where id=$randomAnekId limit 1"
+                "select id,text from aneks where id = (select id from desired_aneks_ids where index = $randomAnekIndex);"
             ).apply { resources.add(this) }
             if (!result.next())
                 return null

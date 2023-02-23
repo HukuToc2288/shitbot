@@ -7,8 +7,12 @@ import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
 
 object AnekCommand : CommandFunction("anek", "рассказать анек", arrayOf("анек", "анекдот", "шутка")) {
 
+    init {
+        GdDao.prepareAneksCache(50)
+    }
+
     override fun execute(message: Message, argsLine: String) {
-        val anek = GdDao.getRandomAnek(50)
+        val anek = GdDao.getRandomAnek()
         bot.sendTextMessage(message.chatId,anek?.second.toString())
         //bot.sendHtmlMessage(message.chatId, "${anek?.second}\n\n<a href='https://www.anekdot.ru/id/${anek?.first}/'>Источник</a>")
     }
