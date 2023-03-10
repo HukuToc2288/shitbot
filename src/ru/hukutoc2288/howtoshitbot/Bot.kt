@@ -589,12 +589,7 @@ class Bot : TelegramLongPollingBot() {
         val averageDick = GdDao.getAverageDick(message.chatId)
         val dickMessage =
             "Средняя длина песюна в чате — $averageDick см\n\nТоп песюнов:\n" + dickTop.joinToString("\n") {
-                val mainLine = "${it.place}. ${it.displayName} — ${it.dickSize} см"
-
-                if (it.isMe)
-                    "<b>$mainLine</b>"
-                else
-                    mainLine
+                "${it.place}. ${if (it.isMe) " \uD83D\uDC49" else ""} ${it.displayName} — ${it.dickSize} см"
             }
         sendHtmlMessage(message.chatId, dickMessage)
     }
