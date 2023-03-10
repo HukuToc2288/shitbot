@@ -308,7 +308,7 @@ object GdDao {
             var currentPlace = 0
             var dickOnPlace = 0
             val dickTop = ArrayList<DickTop>()
-            while (resultSet.next() && (currentPlace < 10 || !foundMe)) {
+            while (resultSet.next() && (currentPlace <= 10 || !foundMe)) {
                 val dick = resultSet.getInt(1)
                 if (dick != dickOnPlace) {
                     dickOnPlace = dick
@@ -320,7 +320,7 @@ object GdDao {
                     // в любом случае добавляем себя
                     foundMe = true
                     dickTop.add(DickTop(displayName, dick, currentPlace, true))
-                } else if (currentPlace < 10) {
+                } else if (currentPlace <= 10) {
                     // добиваем до 10 мест
                     dickTop.add(DickTop(displayName, dick, currentPlace))
                 }
