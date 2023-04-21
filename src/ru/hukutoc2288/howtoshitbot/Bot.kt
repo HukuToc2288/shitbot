@@ -471,7 +471,7 @@ class Bot : TelegramLongPollingBot() {
             sendHtmlMessage(
                 chatId,
                 "По результатам розыгрыша, пидор дня сегодня ${gayUser.displayName}\n" +
-                        "Следующий розыгрыш можно будет провести через $nextTimeString"
+                        "Следующий розыгрыш можно будет провести через $nextTimeString", message.messageId
             )
             return
         }
@@ -491,12 +491,13 @@ class Bot : TelegramLongPollingBot() {
         if (gayUser == null)
             sendTextMessage(
                 chatId,
-                "Хм, похоже пидор дня сегодня уже был выбран, но куда-то исчез. Что ж, проведём внеочередной розыгрыш..."
+                "Хм, похоже пидор дня сегодня уже был выбран, но куда-то исчез. Что ж, проведём внеочередной розыгрыш...",
+                message.messageId
             )
         else
-            sendTextMessage(chatId, "Тааак, сейчас посмотрим...")
+            sendTextMessage(chatId, "Тааак, сейчас посмотрим...", message.messageId)
         Timer().schedule(3000) {
-            sendHtmlMessage(chatId, "Ага, нашёл его! Пидор дня сегодня $textMention")
+            sendHtmlMessage(chatId, "Ага, нашёл его! Пидор дня сегодня $textMention", message.messageId)
         }
     }
 
@@ -536,7 +537,8 @@ class Bot : TelegramLongPollingBot() {
             val dickSize = GdDao.getAverageDick(message.chatId) ?: (1..10).random()
             sendHtmlMessage(
                 chatId,
-                "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString"
+                "$mention, теперь у тебя есть песюн в этом чате, и его длина $dickSize см. Продолжай играть через $nextTimeString",
+                message.messageId
             )
             GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickSize)
             return
@@ -545,7 +547,8 @@ class Bot : TelegramLongPollingBot() {
             // already measured branch
             sendHtmlMessage(
                 chatId,
-                "$mention, ты сегодня уже играл, и длина твоего песюна ${dickInfo.second} см. Продолжай играть через $nextTimeString"
+                "$mention, ты сегодня уже играл, и длина твоего песюна ${dickInfo.second} см. Продолжай играть через $nextTimeString",
+                message.messageId
             )
             return
         }
@@ -559,7 +562,6 @@ class Bot : TelegramLongPollingBot() {
             else
                 it
         }
-        GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
         sendHtmlMessage(
             chatId,
             "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +
@@ -572,8 +574,10 @@ class Bot : TelegramLongPollingBot() {
                         "\n\nДлина твоего песюна стала меньше ${KnbCommand.bet + 1} см, поэтому ты исключён из игры ${KnbCommand.gameTitle}"
                     } else {
                         ""
-                    }
+                    },
+            message.messageId
         )
+        GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
         return
     }
 
@@ -832,18 +836,22 @@ class Bot : TelegramLongPollingBot() {
         )
     }
 
-    fun sendTextMessage(chatId: Long, text: String) {
+    fun sendTextMessage(chatId: Long, text: String, replyId: Int = 0) {
         val message = SendMessage()
         message.text = text
         message.chatId = chatId.toString()
+        if (replyId != 0)
+            message.replyToMessageId = replyId
         execute(message)
     }
 
-    fun sendHtmlMessage(chatId: Long, text: String) {
+    fun sendHtmlMessage(chatId: Long, text: String, replyId: Int = 0) {
         val message = SendMessage()
         message.text = text
         message.parseMode = ParseMode.HTML
         message.chatId = chatId.toString()
+        if (replyId != 0)
+            message.replyToMessageId = replyId
         execute(message)
     }
 
