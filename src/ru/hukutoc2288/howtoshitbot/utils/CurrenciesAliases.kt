@@ -4,7 +4,7 @@ class CurrenciesAliases {
     companion object {
         val aliases = HashMap<Array<String>, String>()
 
-        fun setup() {
+        init {
             aliases.apply {
                 put(arrayOf("рубль", "рубля"), "RUB")
                 put(arrayOf("срубль","срубля"), "SRU")

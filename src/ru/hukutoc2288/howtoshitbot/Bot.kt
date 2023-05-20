@@ -9,13 +9,6 @@ import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.jackson.JacksonConverterFactory
-import ru.hukutoc2288.howtoshitbot.api.CurrenciesApi
-import ru.hukutoc2288.howtoshitbot.entinies.currencies.CurrenciesList
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
@@ -93,7 +86,6 @@ class Bot : TelegramLongPollingBot() {
 
     init {
         BotProperties.update()
-        CurrenciesAliases.setup()
 
         commandList = ArrayList<CommandFunction>().apply {
             add(
@@ -600,10 +592,10 @@ class Bot : TelegramLongPollingBot() {
         val calendarNow = GregorianCalendar.getInstance()
 
         val calendarMidnight = GregorianCalendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0);
-            set(Calendar.MINUTE, 0);
-            set(Calendar.SECOND, 0);
-            set(Calendar.MILLISECOND, 0);
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
         val decimalSeconds: Long = (calendarNow.timeInMillis - calendarMidnight.timeInMillis) / 864
         val decimalTime = "${(decimalSeconds / 10000).toString().padStart(1, '0')}:" +
