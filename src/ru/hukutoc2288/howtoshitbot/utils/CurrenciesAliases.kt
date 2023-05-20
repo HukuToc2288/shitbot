@@ -15,9 +15,9 @@ class CurrenciesAliases {
                 put(arrayOf("тенге"), "KZT")
                 put(arrayOf("юань", "юаня"), "CNY")
                 put(arrayOf("злотый", "злотого","злотувка", "злотувечка", "злотувэчка", "злоты", "злотэ", "злотувки", "злоте"), "PLN")
-                put(arrayOf("гривна", "гривны", "гривни"), "UAH")
+                put(arrayOf("гривна", "гривны", "гривни", "гривні", "гривнi"), "UAH")   // cyrillic and latin "i"
                 put(arrayOf("франк", "франка"), "CHF")
-                put(arrayOf("иена", "иены"), "JPY")
+                put(arrayOf("иена", "иены","йена", "йены"), "JPY")
             }
         }
 
