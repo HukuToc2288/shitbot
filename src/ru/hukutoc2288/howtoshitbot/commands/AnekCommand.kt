@@ -11,6 +11,8 @@ object AnekCommand : CommandFunction("anek", "рассказать анек", ar
         GdDao.prepareAneksCache(50)
     }
 
+    override val requiredFeatures: Int = Features.BASIC and Features.DB_RO
+
     override fun execute(message: Message, argsLine: String) {
         val anek = GdDao.getRandomAnek()
         bot.sendTextMessage(message.chatId,anek?.second.toString())

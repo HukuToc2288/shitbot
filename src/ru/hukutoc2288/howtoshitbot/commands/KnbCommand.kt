@@ -17,7 +17,6 @@ import ru.hukutoc2288.howtoshitbot.utils.mention
 import java.io.File
 import java.util.Calendar
 import java.util.GregorianCalendar
-import kotlin.time.Duration.Companion.seconds
 
 
 private val gameTitle = "\"Камень, ножницы, бумага\""
@@ -28,6 +27,7 @@ object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitl
     private val choices = arrayOf("камень ✊", "ножницы ✌", "бумага \uD83E\uDD1A")
     val waitingPlayers = HashMap<Long, Pair<User, Int>>()
     val bet = 5
+    override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
     override fun execute(message: Message, argsLine: String) {
         val keyboard = InlineKeyboardMarkup(listOf(arrayListOf(), arrayListOf())).apply {

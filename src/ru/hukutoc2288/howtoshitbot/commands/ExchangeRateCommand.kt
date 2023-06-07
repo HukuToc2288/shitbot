@@ -61,7 +61,8 @@ object ExchangeRateCommand : CommandFunction(
         put("KRW", 52)
         put("JPY", 126)
     }
-    
+    override val requiredFeatures: Int = Features.BASIC+Features.EXTERNAL_API
+
     override fun execute(message: Message, argsLine: String) {
         val chatId = message.chatId
         val replyTo = message.messageId

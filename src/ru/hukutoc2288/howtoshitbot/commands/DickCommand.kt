@@ -11,6 +11,8 @@ import kotlin.math.max
 
 object DickCommand : CommandFunction("dick", "сыграть в игру \"Песюн\"", arrayOf("песюн")) {
 
+    override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
+
     override fun execute(message: Message, argsLine: String) {
         val start = System.currentTimeMillis()
         val chatId = message.chatId
