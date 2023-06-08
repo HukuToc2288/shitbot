@@ -18,10 +18,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.objects.User
-import ru.hukutoc2288.howtoshitbot.commands.AnekCommand
-import ru.hukutoc2288.howtoshitbot.commands.DickCommand
-import ru.hukutoc2288.howtoshitbot.commands.ExchangeRateCommand
-import ru.hukutoc2288.howtoshitbot.commands.KnbCommand
+import ru.hukutoc2288.howtoshitbot.commands.*
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
@@ -82,39 +79,16 @@ class Bot : TelegramLongPollingBot() {
             "⣿⣿⣿⣶⣶⣮⣥⣒⠲⢮⣝⡿⣿⣿⡆⣿⡿⠃⠄⠄⠄⠄⠄⠄⠄⣠⣴⣿⣿⣿</pre>" +
             "ня!"
 
-    val commandList: ArrayList<CommandFunction>
+    private val commandList: ArrayList<CommandFunction>
+    private val howToShitCommand: CommandFunction = HowToShitCommand()
 
     init {
         BotProperties.update()
 
         commandList = ArrayList<CommandFunction>().apply {
-            add(
-                object : CommandFunction(
-                    "help",
-                    "вызов справки",
-                    arrayOf("помощь")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = helpCommand(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "how",
-                    "экстренная помощь по вопросам, связанных с процессом дефекации",
-                    arrayOf("как какать", "как какать?", "а как какать", "а как какать")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = sendHowToShit(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "pidor",
-                    "найти кто сегодня пидор дня",
-                    arrayOf("пидор")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = getGayOfDay(message, argsLine)
-                }
-            )
+            add(HelpCommand(this))
+            add(howToShitCommand)
+            add(PidorCommand())
             add(DickCommand)
             // FIXME: 02.12.2022 будет конфликтовать с топом пидоров когда это будет сделано
             add(
@@ -138,14 +112,12 @@ class Bot : TelegramLongPollingBot() {
 //            )
 
             add(ExchangeRateCommand)
-            add(
-                object : CommandFunction(
+            add(SimpleSendTextCommand(
                     "shrug",
                     "пожать плечами",
+                    "¯\\_(ツ)_/¯",
                     arrayOf("пожать плечами")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = sendShrug(message, argsLine)
-                }
+                )
             )
             add(
                 object : CommandFunction(
@@ -234,7 +206,7 @@ class Bot : TelegramLongPollingBot() {
 
                 // special check for howToShit
                 if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
-                    sendHowToShit(update.message)
+                    howToShitCommand.execute(update.message,"")
                     return
                 }
                 val trimmedMessage = messageText.trim()
@@ -333,125 +305,8 @@ class Bot : TelegramLongPollingBot() {
         sendTextMessage(message.chatId, "Эта команда сейчас отключена. Она будет включена как только я захочу")
     }
 
-    private fun helpCommand(message: Message, argsLine: String) {
-        val textToSend = StringBuilder()
-        textToSend.append(
-            "Сратьбот понимает команды в двух видах — команды Telegram, начинающиеся с \"/\"," +
-                    " и текстовые команды (написаны в скобках), начинающиеся с обращения \"сратьбот\". " +
-                    "Например, /coin и \"сратьбот монетка\" являются эвивалентными командами. Некоторые команды имеют " +
-                    "<аргументы>, которые следуе вводить после команды, например /can какать или \"сратьбот можно какать\"\n\n " +
-                    "Полный список команд:"
-        )
-        for (commandFunction in commandList) {
-            textToSend.append("\n")
-            textToSend.append("/")
-            textToSend.append(commandFunction.command)
-            textToSend.append(" (")
-            textToSend.append(commandFunction.aliases.joinToString(", "))
-            textToSend.append(") – ")
-            textToSend.append(commandFunction.description)
-        }
-        sendTextMessage(message.chatId, textToSend.toString())
-    }
-
     private fun isFromAdmin(message: Message): Boolean {
         return adminPanelEnabled && (message.from.userName in admins)
-    }
-
-    private fun getGayOfDay(message: Message, argsLine: String) {
-        val chatId = message.chatId
-        val chat = GdDao.getChatById(chatId)
-        val userIds = GdDao.getUserIdsInChat(chatId)
-        GdDao.updateUserName(message.from)
-        // not enough players branch
-        if (chat == null || userIds.isEmpty()) {
-            onError(
-                chatId,
-                "кажется, в этом чате ещё никто не участвует в игре \"Пидор дня\". Обычно бот сам находит игроков, но, видимо, что-то идёт не так"
-            )
-            return
-        }
-        if (userIds.size < 2) {
-            onError(
-                chatId,
-                "чтобы играть в \"Пидор дня\", нужно минимум два игрока. Пользователь автоматически станет игроком, как только напишет сообщение в чат"
-            )
-            return
-        }
-        // now we're playing
-
-        val nowCalendar = GregorianCalendar()
-        val previousCalendar = GregorianCalendar().apply {
-            time = chat.lastTime
-        }
-        val gayUser = GdDao.getGayInChat(chatId)
-        if (gayUser != null && DateUtils.isToday(previousCalendar)) {
-            // gay already chosen branch
-            val tomorrowCalendar = GregorianCalendar().apply {
-                add(Calendar.DATE, 1)
-            }
-            val nextTimeString =
-                if (nowCalendar.get(Calendar.HOUR_OF_DAY) == 23) {
-                    if (nowCalendar.get(Calendar.MINUTE) == 59) {
-                        if (nowCalendar.get(Calendar.SECOND) == 59) {
-                            "сейчас"
-                        } else {
-                            "${60 - tomorrowCalendar.get(Calendar.SECOND)} секунд"
-                        }
-                    } else {
-                        "${60 - tomorrowCalendar.get(Calendar.MINUTE)} минут"
-                    }
-                } else {
-                    "${24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)} часов"
-                }
-            sendHtmlMessage(
-                chatId,
-                "По результатам розыгрыша, пидор дня сегодня ${gayUser.displayName}\n" +
-                        "Следующий розыгрыш можно будет провести через $nextTimeString", message.messageId
-            )
-            return
-        }
-        // chose new gay branch
-        val gayId = userIds.random()
-        val newGayUser = GdDao.getUserById(gayId)
-        if (newGayUser == null) {
-            onError(
-                chatId,
-                "этого не должно было произойти, но это произошло. Обратитесь к админу бота @${BotProperties.adminName}"
-            )
-            return
-        }
-        GdDao.updateGayInChat(Timestamp(nowCalendar.timeInMillis), chatId, gayId)
-        //val textMention = "<a href=\"tg://user?id=${newGayUser.id}\">${newGayUser.displayName}</a>"
-        val textMention = newGayUser.displayName
-        if (gayUser == null)
-            sendTextMessage(
-                chatId,
-                "Хм, похоже пидор дня сегодня уже был выбран, но куда-то исчез. Что ж, проведём внеочередной розыгрыш...",
-                message.messageId
-            )
-        else
-            sendTextMessage(chatId, "Тааак, сейчас посмотрим...", message.messageId)
-        Timer().schedule(3000) {
-            sendHtmlMessage(chatId, "Ага, нашёл его! Пидор дня сегодня $textMention", message.messageId)
-        }
-    }
-
-    private fun showDickTop(message: Message, argsLine: String) {
-        val dickTop = GdDao.getDickTop(message.chatId, message.from)
-        if (dickTop.isEmpty()) {
-            sendTextMessage(
-                message.chatId,
-                "Похоже, в этом чате ещё ни у кого нет песюна. Напиши /dick, чтобы начать играть"
-            )
-            return
-        }
-        val averageDick = GdDao.getAverageDick(message.chatId)
-        val dickMessage =
-            "Средняя длина песюна в чате — $averageDick см\n\nТоп песюнов:\n" + dickTop.joinToString("\n") {
-                "${it.place}. ${if (it.isMe) " \uD83D\uDC49" else ""} ${it.displayName} — ${it.dickSize} см"
-            }
-        sendHtmlMessage(message.chatId, dickMessage)
     }
 
     private fun sendShrug(message: Message, argsLine: String) {
@@ -500,18 +355,6 @@ class Bot : TelegramLongPollingBot() {
 
     fun onError(chatId: Long, text: String? = "неизвестный бибиб") {
         sendTextMessage(chatId, "Случился бибиб: $text")
-    }
-
-    private fun sendHowToShit(message: Message, args: String = "") {
-        val sendPhoto = SendPhoto()
-        val imageName = when ((0..9).random()) {
-            0 -> "/home/huku/Pictures/howToShitStanding.jpg"
-            1 -> "/home/huku/Pictures/howToShitBokom.jpg"
-            else -> "/home/huku/Pictures/howToShit.jpg"
-        }
-        sendPhoto.photo = InputFile(File(imageName))
-        sendPhoto.chatId = message.chatId.toString()
-        execute(sendPhoto)
     }
 
     private fun getServicesUptime(message: Message, args: String = "") {
