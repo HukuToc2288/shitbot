@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.telegram:telegrambots:5.7.1"){
+    implementation("org.telegram:telegrambots:5.7.1") {
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
         because("Too many CVEs")
     }
@@ -36,7 +36,6 @@ tasks.test {
 }
 
 
-
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
     jvmTarget = "1.8"
@@ -44,4 +43,11 @@ compileKotlin.kotlinOptions {
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
     jvmTarget = "1.8"
+}
+
+tasks.jar {
+    manifest.attributes["Main-Class"] = "ru.hukutoc2288.howtoshitbot.MainKt"
+    val dependencies = configurations.runtimeClasspath.get().map(::zipTree)
+    from(dependencies)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
