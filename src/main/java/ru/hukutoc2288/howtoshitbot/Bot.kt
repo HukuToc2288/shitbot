@@ -4,33 +4,20 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.ParseMode
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.schedule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.objects.User
 import ru.hukutoc2288.howtoshitbot.commands.*
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
-import ru.hukutoc2288.howtoshitbot.entinies.uptime.UptimeResponse
 import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
-import java.lang.StringBuilder
-import java.net.InetAddress
-import java.net.Socket
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
-import kotlin.collections.HashMap
-import java.util.Calendar
-import kotlin.math.max
 import kotlin.system.exitProcess
 
 
@@ -50,16 +37,9 @@ class Bot : TelegramLongPollingBot() {
 
 
     private val botPrefixes = arrayOf("@howtoshitbot", "сратьбот")
-    private val admins = arrayOf("HukuToc2288")
-    private var adminPanelEnabled = true
 
     private val dailyUptimeListFile = File("uptime/daily.json")
     private val monthlyUptimesListFile = File("uptime/monthly.json")
-
-    private val uptimeDaemonPort = 1340
-
-    private val headsStickerId = "CAACAgIAAxkBAAEEf8FiXGqv5jHeRmxbzHNFIzjqOCLJBQACDhgAAqF14UqqV4QOJ--W9iQE"
-    private val tailsStickerId = "CAACAgIAAxkBAAEEf8NiXGqzuFIULCbMaZTh_2phHm4KFwAC9BkAAvhi4UpfWs4ysHF52CQE"
 
     private val faceArt = "<pre>" +
             "⠄⠄⠄⢰⣧⣼⣯⠄⣸⣠⣶⣶⣦⣾⠄⠄⠄⠄⡀⠄⢀⣿⣿⠄⠄⠄⢸⡇⠄⠄\n" +
@@ -91,15 +71,7 @@ class Bot : TelegramLongPollingBot() {
             add(PidorCommand())
             add(DickCommand)
             // FIXME: 02.12.2022 будет конфликтовать с топом пидоров когда это будет сделано
-            add(
-                object : CommandFunction(
-                    "top",
-                    "топ песюнов",
-                    arrayOf()
-                ) {
-                    override fun execute(message: Message, argsLine: String) = showDickTop(message, argsLine)
-                }
-            )
+            add(DickTopCommand())
             add(KnbCommand)
             add(AnekCommand)
 //            add(
@@ -112,67 +84,26 @@ class Bot : TelegramLongPollingBot() {
 //            )
 
             add(ExchangeRateCommand)
-            add(SimpleSendTextCommand(
+            add(
+                SimpleSendTextCommand(
                     "shrug",
                     "пожать плечами",
                     "¯\\_(ツ)_/¯",
                     arrayOf("пожать плечами")
                 )
             )
-            add(
-                object : CommandFunction(
-                    "ahegao",
-                    "сделать ахегао",
-                    arrayOf("ахегао")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = sendFaceArt(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "uptime",
-                    "процент доступности сервисов",
-                    arrayOf("аптайм")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = getServicesUptime(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "admin",
-                    "<команда> администрирование на лету. Если ты простой смертный, тебе не следует пользоваться этой командой",
-                    arrayOf("админ", "админка")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = executeAdminCommand(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "can",
-                    "<вопрос> спросить разрешение у Сратьбота на то или иное действие",
-                    arrayOf("можно ли", "могу ли я", "можно", "can")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = sendCan(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "coin",
-                    "Подбросить монетку",
-                    arrayOf("монетка")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = flipCoin(message, argsLine)
-                }
-            )
-            add(
-                object : CommandFunction(
-                    "time",
-                    "Узнать сколько сейчас времени в классическом и десятичном формате",
-                    arrayOf("время")
-                ) {
-                    override fun execute(message: Message, argsLine: String) = sendDecimalTime(message, argsLine)
-                }
-            )
+            add(SimpleSendTextCommand(
+                "ahegao",
+                "сделать ахегао",
+                faceArt,
+                arrayOf("ахегао"),
+                true
+            ))
+            add(UptimeCommand())
+            add(AdminCommand())
+            add(CanCommand())
+            add(FlipCoinCommand())
+            add(TimeCommand())
         }
         setCommandsFromList(commandList)
     }
@@ -206,7 +137,7 @@ class Bot : TelegramLongPollingBot() {
 
                 // special check for howToShit
                 if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
-                    howToShitCommand.execute(update.message,"")
+                    howToShitCommand.execute(update.message, "")
                     return
                 }
                 val trimmedMessage = messageText.trim()
@@ -305,155 +236,8 @@ class Bot : TelegramLongPollingBot() {
         sendTextMessage(message.chatId, "Эта команда сейчас отключена. Она будет включена как только я захочу")
     }
 
-    private fun isFromAdmin(message: Message): Boolean {
-        return adminPanelEnabled && (message.from.userName in admins)
-    }
-
-    private fun sendShrug(message: Message, argsLine: String) {
-        sendTextMessage(message.chatId, "¯\\_(ツ)_/¯")
-    }
-
-    private fun sendFaceArt(message: Message, argsLine: String) {
-        sendHtmlMessage(message.chatId, faceArt)
-    }
-
-    private fun executeAdminCommand(message: Message, argsLine: String) {
-        if (argsLine.equals("вкл", ignoreCase = true)) {
-            if ((message.from.userName in admins)) {
-                sendTextMessage(
-                    message.chatId,
-                    "Админка включена, теперь ты снова базированый шлёпа гигачад админ бота"
-                )
-                adminPanelEnabled = true
-                return
-            }
-        } else if (argsLine.equals("выкл", ignoreCase = true)) {
-            if ((message.from.userName in admins)) {
-                sendTextMessage(
-                    message.chatId,
-                    "Админка выключена, теперь ты сойжак кукож поридж простой смертный юзер"
-                )
-                adminPanelEnabled = false
-                return
-            }
-        }
-        if (!isFromAdmin(message)) {
-            sendTextMessage(
-                message.chatId,
-                "Ты не можешь использовать админку. Не вводи это команду. Забудь её. Если это будет продолжаться дальше, будут приняты меры"
-            )
-            return
-        }
-        if (argsLine.equals("паника", true)) {
-            sendTextMessage(
-                message.chatId,
-                "На этом мои полномочия всё. Прощайте..."
-            )
-            exitProcess(0)
-        }
-    }
-
     fun onError(chatId: Long, text: String? = "неизвестный бибиб") {
         sendTextMessage(chatId, "Случился бибиб: $text")
-    }
-
-    private fun getServicesUptime(message: Message, args: String = "") {
-        var uptimeMessage = ""
-        val dailyUptimeResponse = try {
-            val clientSocket = Socket(InetAddress.getLoopbackAddress(), uptimeDaemonPort)
-            mapper.readValue(String(clientSocket.getInputStream().readAllBytes()), UptimeResponse::class.java).also {
-                clientSocket.close()
-            }
-        } catch (e: Exception) {
-            onError(
-                message.chatId,
-                "Не удалось добазариться со службой аптайма: ${e.message}\n\n"
-            )
-            return
-        }
-        if (dailyUptimeResponse.error != null) {
-            onError(
-                message.chatId,
-                "Служба аптайма вернула ошибку: ${dailyUptimeResponse.error}\n\n"
-            )
-            return
-        }
-        uptimeMessage += "Доступность сервисов сервера"
-        dailyUptimeResponse.dailyUptimeList?.let {
-            uptimeMessage += "\n\nЗа сутки:"
-            for (uptimeEntry in it) {
-                uptimeMessage += "\n${uptimeEntry.displayName} — ${uptimeEntry.uptimePercent}%"
-            }
-        }
-        dailyUptimeResponse.monthlyUptimesList?.let {
-            uptimeMessage += "\n\nЗа 30 дней:"
-            for (uptimeEntry in it) {
-                uptimeMessage += "\n${uptimeEntry.displayName} — ${uptimeEntry.uptimePercent}%"
-            }
-        }
-        sendTextMessage(message.chatId, uptimeMessage)
-    }
-
-    private fun sendCan(message: Message, args: String = "") {
-        val canMessage = SendMessage()
-        val questionToProcess = args
-            .trim()
-            .replace("\\s+".toRegex(), " ")
-            .lowercase(Locale.getDefault())
-            .replace("\\?+$".toRegex(), "")
-        val questionToReply = args.replace("\\?+$".toRegex(), "")
-        val textToSend: String = if (questionToProcess.isBlank()) {
-            "Можно что? После команды следует задать вопрос, например \"Сратьбот можно какать?\""
-        } else {
-            val benediction =
-                if (message.from.firstName == "Владимир" && message.from.lastName == "Путин")
-                    true
-                else (questionToProcess + message.from.id.toString() +
-                        SimpleDateFormat("dd-MM-YYYY").format(Date())).hashCode() % 2 == 0
-            val userName = message.from.firstName +
-                    if (message.from.lastName != null) " ${message.from.lastName}" else ""
-            if (benediction) {
-                "$userName, сегодня тебе МОЖНО $questionToReply! Так сделай же это!"
-            } else {
-                "$userName, сегодня тебе НЕЛЬЗЯ $questionToReply! Отложи это до завтра"
-            }
-        }
-        canMessage.text = textToSend
-        canMessage.chatId = message.chatId.toString()
-        //canMessage.replyToMessageId = message.messageId
-        execute(canMessage)
-    }
-
-    private fun flipCoin(message: Message, args: String = "") {
-        val coinMessage = SendSticker()
-        coinMessage.chatId = message.chatId.toString()
-        coinMessage.sticker = InputFile(arrayOf(headsStickerId, tailsStickerId).random())
-        execute(coinMessage)
-    }
-
-    private fun sendDecimalTime(message: Message, args: String = "") {
-        val calendarNow = GregorianCalendar.getInstance()
-
-        val calendarMidnight = GregorianCalendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val decimalSeconds: Long = (calendarNow.timeInMillis - calendarMidnight.timeInMillis) / 864
-        val decimalTime = "${(decimalSeconds / 10000).toString().padStart(1, '0')}:" +
-                "${(decimalSeconds / 100 % 100).toString().padStart(2, '0')}:" +
-                "${(decimalSeconds % 100).toString().padStart(2, '0')}"
-
-        val sdf = SimpleDateFormat("HH:mm:ss")
-        val classicTime = sdf.format(calendarNow.time)
-
-        sendTextMessage(
-            message.chatId,
-            "Время на сервере (МСК):\n" +
-                    "Десятичное — $decimalTime\n" +
-                    "Классические — $classicTime"
-        )
     }
 
     fun sendTextMessage(chatId: Long, text: String, replyId: Int = 0) {
