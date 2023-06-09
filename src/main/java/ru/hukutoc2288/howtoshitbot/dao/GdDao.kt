@@ -45,6 +45,29 @@ object GdDao {
 
     }
 
+    // TODO: у меня был прикольный итератор для этого в другом проекте, надо его перенести сюда
+    fun getAllChatIds(): List<Long>? {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.prepareStatement("SELECT chatid FROM chats")
+            if (!statement.execute())
+                return null
+            resultSet = statement.resultSet
+            val list = ArrayList<Long>()
+            while (resultSet.next()){
+                list.add(resultSet.getLong(1))
+            }
+            return list
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
     fun addChat(chatId: Long) {
         var connection: Connection? = null
         var statement: Statement? = null
