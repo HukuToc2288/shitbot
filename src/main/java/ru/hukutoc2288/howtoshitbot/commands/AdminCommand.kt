@@ -68,9 +68,21 @@ class AdminCommand : CommandFunction(
                     bot.sendTextMessage(message.chatId, "Не удалось получить список чатов", message.messageId)
                     return
                 }
+                var succeedChats = 0
+                var failedChats = 0
                 for (chatId in allChats) {
-                    bot.sendTextMessage(chatId, argument)
+                    try {
+                        bot.sendTextMessage(chatId, argument)
+                        succeedChats++
+                    } catch (e: Exception) {
+                        failedChats++
+                    }
                 }
+                bot.sendTextMessage(
+                    message.chatId,
+                    "Сообщение разослано в $succeedChats частов\nНе удалось отправить в $failedChats чатов",
+                    message.messageId
+                )
             }
         }
     }
