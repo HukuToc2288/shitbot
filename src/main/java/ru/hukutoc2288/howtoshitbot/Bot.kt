@@ -100,7 +100,11 @@ class Bot : TelegramLongPollingBot() {
                 true
             ))
             add(UptimeCommand())
-            add(AdminCommand())
+            add(AdminCommand().apply {
+                sudoMessageCallback = { message ->
+                    processMessage(message)
+                }
+            })
             add(CanCommand())
             add(FlipCoinCommand())
             add(TimeCommand())
@@ -119,54 +123,7 @@ class Bot : TelegramLongPollingBot() {
     override fun onUpdateReceived(update: Update) {
         try {
             if (update.hasMessage() && update.message.hasText()) {
-                val chatId = update.message.chatId
-                val messageText = update.message.text
-
-                if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
-                    onGdMessageHooked(update.message)
-                }
-
-                if (isBotNameSpelledIncorrect(messageText)) {
-                    // somebody dare to spell bot name incorrectly, react to that!
-                    sendTextMessage(
-                        chatId,
-                        "Ты как назвал меня, пёс!? Меня зовут Сратьбот, на кириллице в любом регистре!"
-                    )
-                    return
-                }
-
-                // special check for howToShit
-                if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
-                    howToShitCommand.execute(update.message, "")
-                    return
-                }
-                val trimmedMessage = messageText.trim()
-
-                if (justBotName(trimmedMessage)) {
-                    sendTextMessage(chatId, update.message.from.firstName + " " + update.message.from.lastName)
-                    return
-                }
-
-                if (!isBotCommand(trimmedMessage))
-                    return  // this message is not addressed to bot
-
-                // check maintenance
-                if (BotProperties.maintaining && chatId != BotProperties.debugChatId) {
-                    // only basic functions above this line will work
-                    sendTextMessage(
-                        chatId,
-                        "Извините, в настоящее время бот отключён со следующим сообщением: "
-                                + BotProperties.maintenanceReason
-                    )
-                    return
-                }
-                val commandAndArguments = findCommand(trimmedMessage)
-                if (commandAndArguments == null) {
-                    sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
-                    return
-                }
-                println(update.message)
-                commandAndArguments.first.execute(update.message, commandAndArguments.second)
+                processMessage(update.message)
             } else if (update.hasCallbackQuery()) {
                 // играем в КНБ
                 KnbCommand.processCallback(update.callbackQuery)
@@ -174,6 +131,57 @@ class Bot : TelegramLongPollingBot() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun processMessage(message: Message){
+        val chatId = message.chatId
+        val messageText = message.text
+
+        if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
+            onGdMessageHooked(message)
+        }
+
+        if (isBotNameSpelledIncorrect(messageText)) {
+            // somebody dare to spell bot name incorrectly, react to that!
+            sendTextMessage(
+                chatId,
+                "Ты как назвал меня, пёс!? Меня зовут Сратьбот, на кириллице в любом регистре!"
+            )
+            return
+        }
+
+        // special check for howToShit
+        if (messageText.matches(".*как\\s+какать.*".toRegex(RegexOption.IGNORE_CASE))) {
+            howToShitCommand.execute(message, "")
+            return
+        }
+        val trimmedMessage = messageText.trim()
+
+        if (justBotName(trimmedMessage)) {
+            sendTextMessage(chatId, message.from.firstName + " " + message.from.lastName)
+            return
+        }
+
+        if (!isBotCommand(trimmedMessage))
+            return  // this message is not addressed to bot
+
+        // check maintenance
+        if (BotProperties.maintaining && chatId != BotProperties.debugChatId) {
+            // only basic functions above this line will work
+            sendTextMessage(
+                chatId,
+                "Извините, в настоящее время бот отключён со следующим сообщением: "
+                        + BotProperties.maintenanceReason
+            )
+            return
+        }
+        val commandAndArguments = findCommand(trimmedMessage)
+        if (commandAndArguments == null) {
+            sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
+            return
+        }
+        println(message)
+        commandAndArguments.first.execute(message, commandAndArguments.second)
     }
 
     private fun justBotName(message: String): Boolean {

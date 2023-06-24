@@ -20,6 +20,8 @@ class AdminCommand : CommandFunction(
     private val admins = arrayOf("HukuToc2288")
     private var adminPanelEnabled = true
 
+    var sudoMessageCallback: ((Message) -> Unit)? = null
+
     override fun execute(message: Message, argsLine: String) {
         if (argsLine.equals("вкл", ignoreCase = true)) {
             if ((message.from.userName in admins)) {
@@ -84,6 +86,57 @@ class AdminCommand : CommandFunction(
                     message.messageId
                 )
             }
+            "судо" -> {
+                // TODO: это явно можно сделать красивее
+                if (argument == null) {
+                    bot.sendTextMessage(message.chatId, "Данная команда требует аргумент", message.messageId)
+                    return
+                }
+                val (chatId, argument2) = extractCommand(argument)
+                if (argument2 == null) {
+                    bot.sendTextMessage(message.chatId, "Данная команда требует аргумент", message.messageId)
+                    return
+                }
+                val (userId, argument3) = extractCommand(argument2)
+                if (argument3 == null) {
+                    bot.sendTextMessage(message.chatId, "Данная команда требует аргумент", message.messageId)
+                    return
+                }
+                val chat = GdDao.getChatById(chatId.toLongOrNull() ?: 0)
+                if (chat == null){
+                    bot.sendTextMessage(message.chatId, "Чата нет в базе данных бота", message.messageId)
+                    return
+                }
+                val userIds = GdDao.getUserIdsInChat(chat.id)
+                if (!userIds.contains(userId.toLongOrNull())){
+                    bot.sendTextMessage(message.chatId, "Пользователь не найден в данном чате", message.messageId)
+                    return
+                }
+                val newUser = GdDao.getUserById(userId.toLong())
+                if (newUser == null){
+                    bot.sendTextMessage(message.chatId, "Пользователя нет в базе данных бота", message.messageId)
+                    return
+                }
+
+                // change message sender, chat and text
+                // although, it is definitely broken, that should be enough to send message as user
+                message.chat.id = chatId.toLongOrNull() ?: 0
+                message.from.id = newUser.id
+                message.from.firstName = newUser.displayName
+                message.from.userName = newUser.displayName
+                message.from.lastName = null
+                message.text = argument3
+
+                // process as usual message
+                val cb = sudoMessageCallback
+                if (cb == null){
+                    bot.sendTextMessage(message.chatId, "Отсутствует callback обработчика", message.messageId)
+                } else {
+                    cb.invoke(message)
+                    bot.sendTextMessage(message.chatId, "Выполнено", message.messageId)
+                }
+
+            }
         }
     }
 
@@ -95,5 +148,4 @@ class AdminCommand : CommandFunction(
     private fun isFromAdmin(message: Message): Boolean {
         return adminPanelEnabled && (message.from.userName in admins)
     }
-
 }
