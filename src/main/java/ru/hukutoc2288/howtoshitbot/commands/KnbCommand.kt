@@ -160,6 +160,8 @@ object KnbCommand : CommandFunction("knb", "сыграть в игру $gameTitl
     }
 
     private fun checkSundownerTime(): Boolean {
+        // TODO: sundowner seems to be broken, and need to be fixed
+        return false
         val calendar = GregorianCalendar()
         return (calendar.get(Calendar.DAY_OF_MONTH) == 24 && (calendar.get(Calendar.HOUR_OF_DAY) in 12 until 18))
     }
