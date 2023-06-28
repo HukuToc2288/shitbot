@@ -12,7 +12,7 @@ import kotlin.collections.ArrayList
 class ViewStoriesCommand : CommandFunction(
     "stories",
     "просмотреть истории в этом чате",
-    arrayOf("истории")
+    arrayOf("истории","сторис")
 ) {
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RO
 

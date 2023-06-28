@@ -15,7 +15,7 @@ import java.util.GregorianCalendar
 class CreateStoryCommand : CommandFunction(
     "story",
     "Создать новую историю",
-    arrayOf("создать историю")
+    arrayOf("создать историю","создать сторис")
 ) {
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
