@@ -28,7 +28,7 @@ class ViewStoriesCommand : CommandFunction(
         }
         // TODO: удалять истории, у которых вышло время
         if (actualStories.isEmpty()) {
-            bot.sendTextMessage(message.chatId, "Сейчас в этом чате нет историй. Создай свою сейчас при помощи /story")
+            bot.sendTextMessage(message.chatId, "Сейчас в этом чате нет историй. Создай свою сейчас при помощи /story",message.messageId)
             return
         }
         var messageToSend = "Истории в этом чате:\n"
