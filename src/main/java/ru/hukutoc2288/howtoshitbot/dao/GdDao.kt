@@ -4,6 +4,7 @@ import org.telegram.telegrambots.meta.api.objects.User
 import ru.hukutoc2288.howtoshitbot.entinies.dick.DickTop
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdChat
 import ru.hukutoc2288.howtoshitbot.entinies.gayofday.GdUser
+import ru.hukutoc2288.howtoshitbot.entinies.stories.Story
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.sql.Connection
@@ -57,7 +58,7 @@ object GdDao {
                 return null
             resultSet = statement.resultSet
             val list = ArrayList<Long>()
-            while (resultSet.next()){
+            while (resultSet.next()) {
                 list.add(resultSet.getLong(1))
             }
             return list
@@ -394,6 +395,41 @@ object GdDao {
             if (!resultSet.next())
                 return null
             return resultSet.getInt(1) to resultSet.getString(2)
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    // stories
+
+    fun getStoriesInChat(chatId: Long): List<Story> {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
+                "SELECT chatId,stories.userId,expireAfter,message,displayName FROM stories" +
+                        " JOIN users ON stories.userId=users.userId WHERE chatId=$chatId"
+            )
+            val storiesList = ArrayList<Story>()
+            while (resultSet.next()) {
+                storiesList.add(
+                    Story(
+                        chatId = resultSet.getLong("chatId"),
+                        user = GdUser(
+                            id = resultSet.getLong("userId"),
+                            displayName = resultSet.getString("displayName")
+                        ),
+                        expireAfter = resultSet.getTimestamp("expireAfter"),
+                        message = resultSet.getString("message")
+                    )
+                )
+            }
+            return storiesList
         } finally {
             resultSet?.close()
             statement?.close()
