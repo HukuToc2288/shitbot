@@ -13,6 +13,7 @@ import java.sql.Statement
 import java.sql.Timestamp
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
+import kotlin.math.exp
 
 object GdDao {
 
@@ -432,6 +433,61 @@ object GdDao {
             return storiesList
         } finally {
             resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun getSingleStory(chatId: Long, user: User): Story? {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
+                "SELECT chatId,stories.userId,expireAfter,message,displayName FROM stories" +
+                        " JOIN users ON stories.userId=users.userId WHERE chatId=$chatId AND stories.userId=${user.id}"
+            )
+            if (!resultSet.next())
+                return null
+            return Story(
+                chatId = resultSet.getLong("chatId"),
+                user = GdUser(
+                    id = resultSet.getLong("userId"),
+                    displayName = resultSet.getString("displayName")
+                ),
+                expireAfter = resultSet.getTimestamp("expireAfter"),
+                message = resultSet.getString("message")
+            )
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun createOrUpdateStory(chatId: Long, user: User, expireAfter: Timestamp, message: String) {
+        updateUserName(user)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement(
+                    "INSERT INTO stories(chatId,userId,expireAfter,message) VALUES (?,?,?,?)" +
+                            " ON CONFLICT (chatId,userId) DO UPDATE SET" +
+                            " expireAfter=excluded.expireAfter, message=excluded.message"
+                )
+                    .apply {
+                        setLong(1, chatId)
+                        setLong(2, user.id)
+                        setTimestamp(3, expireAfter)
+                        setString(4, message)
+                    }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
             statement?.close()
             connection?.close()
         }

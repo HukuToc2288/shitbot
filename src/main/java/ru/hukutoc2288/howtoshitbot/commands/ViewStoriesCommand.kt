@@ -5,6 +5,7 @@ import ru.hukutoc2288.howtoshitbot.bot
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.entinies.stories.Story
 import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
+import ru.hukutoc2288.howtoshitbot.utils.StoryUtils
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -20,7 +21,7 @@ class ViewStoriesCommand : CommandFunction(
         val actualStories = ArrayList<Story>(stories.size)
         val expiredStories = ArrayList<Story>(stories.size)
         for (story in stories) {
-            if (checkStory(story))
+            if (StoryUtils.checkStory(story))
                 actualStories.add(story)
             else
                 expiredStories.add(story)
@@ -35,10 +36,6 @@ class ViewStoriesCommand : CommandFunction(
             messageToSend += buildStoryLine(story)
         }
         bot.sendHtmlMessage(message.chatId, messageToSend, message.messageId)
-    }
-
-    private fun checkStory(story: Story): Boolean {
-        return story.expireAfter.after(Date())
     }
 
     private fun buildStoryLine(story: Story): String {

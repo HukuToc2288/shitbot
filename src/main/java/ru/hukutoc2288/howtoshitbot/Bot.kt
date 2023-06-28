@@ -108,6 +108,7 @@ class Bot : TelegramLongPollingBot() {
             add(CanCommand())
             add(FlipCoinCommand())
             add(TimeCommand())
+            add(CreateStoryCommand())
             add(ViewStoriesCommand())
         }
         setCommandsFromList(commandList)
