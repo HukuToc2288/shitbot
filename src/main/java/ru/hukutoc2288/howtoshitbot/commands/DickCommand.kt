@@ -59,7 +59,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             // already measured branch
             bot.sendHtmlMessage(
                 chatId,
-                "$mention, ты сегодня уже играл, и длина твоего песюна ${buildTextDick(dickInfo.second)} см. Продолжай играть через $nextTimeString",
+                "$mention, ты сегодня уже играл, и длина твоего песюна ${buildTextDick(dickInfo.second)}. Продолжай играть через $nextTimeString",
                 message.messageId
             )
             return
@@ -94,7 +94,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
     }
 
     private fun buildTextDick(dickLength: Int): String{
-        val segments = dickLength/100+1
-        return "8${"=".repeat(segments)}D $segments см"
+        val segments = (dickLength)/100+1
+        return "8${"=".repeat(segments)}D $dickLength см"
     }
 }
