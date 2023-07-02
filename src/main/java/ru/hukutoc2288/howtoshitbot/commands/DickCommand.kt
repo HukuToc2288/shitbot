@@ -61,7 +61,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             println("send :${System.currentTimeMillis()-start}ms")
             bot.sendHtmlMessage(
                 chatId,
-                "$mention, ты сегодня уже играл, и длина твоего песюна ${dickInfo.second} см. Продолжай играть через $nextTimeString",
+                "$mention, ты сегодня уже играл, и длина твоего песюна ${buildTextDick(dickInfo.second)} см. Продолжай играть через $nextTimeString",
                 message.messageId
             )
             println("total :${System.currentTimeMillis()-start}ms")
@@ -80,7 +80,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
         bot.sendHtmlMessage(
             chatId,
             "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +
-                    "Теперь его длина ${dickInfo.second + dickChange} см. Продолжай играть через $nextTimeString" +
+                    "Теперь его длина ${buildTextDick(dickInfo.second + dickChange)}. Продолжай играть через $nextTimeString" +
                     if (dickInfo.second + dickChange <= KnbCommand.bet &&
                         KnbCommand.waitingPlayers[chatId]?.first?.id == user.id && KnbCommand.waitingPlayers.remove(
                             chatId
@@ -94,5 +94,10 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
         )
         GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
         return
+    }
+
+    private fun buildTextDick(dickLength: Int): String{
+        val segments = dickLength/100+1
+        return "8${"=".repeat(segments)}D $segments см"
     }
 }
