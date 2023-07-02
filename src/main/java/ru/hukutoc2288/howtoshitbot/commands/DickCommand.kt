@@ -14,7 +14,6 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
     override fun execute(message: Message, argsLine: String) {
-        val start = System.currentTimeMillis()
         val chatId = message.chatId
         val user = message.from
         val mention = if (user.userName != null) {
@@ -58,13 +57,11 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
         }
         if (DateUtils.isToday(dickInfo.first)) {
             // already measured branch
-            println("send :${System.currentTimeMillis()-start}ms")
             bot.sendHtmlMessage(
                 chatId,
                 "$mention, ты сегодня уже играл, и длина твоего песюна ${buildTextDick(dickInfo.second)} см. Продолжай играть через $nextTimeString",
                 message.messageId
             )
-            println("total :${System.currentTimeMillis()-start}ms")
             return
         }
 
