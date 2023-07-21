@@ -23,11 +23,9 @@ class CanCommand : CommandFunction(  "can",
         val textToSend: String = if (questionToProcess.isBlank()) {
             "Можно что? После команды следует задать вопрос, например \"Сратьбот можно какать?\""
         } else {
-            val benediction =
-                if (message.from.firstName == "Владимир" && message.from.lastName == "Путин")
-                    true
-                else Integer.bitCount((questionToProcess + message.from.id.toString() +
-                        SimpleDateFormat("dd-MM-YYYY").format(Date())).hashCode())  % 2 == 0
+            val benediction = (Integer.bitCount((questionToProcess + message.from.id.toString() +
+                        SimpleDateFormat("dd-MM-YYYY").format(Date())).hashCode())  % 2 == 0) ||
+                    (message.from.firstName == "Владимир" && message.from.lastName == "Путин")
             val userName = message.from.firstName +
                     if (message.from.lastName != null) " ${message.from.lastName}" else ""
             if (benediction) {
