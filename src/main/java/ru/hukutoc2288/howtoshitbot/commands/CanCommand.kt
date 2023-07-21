@@ -26,8 +26,8 @@ class CanCommand : CommandFunction(  "can",
             val benediction =
                 if (message.from.firstName == "Владимир" && message.from.lastName == "Путин")
                     true
-                else (questionToProcess + message.from.id.toString() +
-                        SimpleDateFormat("dd-MM-YYYY").format(Date())).hashCode() % 2 == 0
+                else Integer.bitCount((questionToProcess + message.from.id.toString() +
+                        SimpleDateFormat("dd-MM-YYYY").format(Date())).hashCode())  % 2 == 0
             val userName = message.from.firstName +
                     if (message.from.lastName != null) " ${message.from.lastName}" else ""
             if (benediction) {
