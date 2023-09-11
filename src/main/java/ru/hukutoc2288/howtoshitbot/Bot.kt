@@ -70,6 +70,7 @@ class Bot : TelegramLongPollingBot() {
             add(howToShitCommand)
             add(PidorCommand())
             add(DickCommand)
+            add(UnDickCommand())
             // FIXME: 02.12.2022 будет конфликтовать с топом пидоров когда это будет сделано
             add(DickTopCommand())
             add(KnbCommand)

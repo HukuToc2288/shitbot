@@ -8,9 +8,11 @@ import ru.hukutoc2288.howtoshitbot.entinies.stories.Story
 import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.sql.Connection
+import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
 import java.sql.Timestamp
+import java.time.LocalDate
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.math.exp
@@ -262,7 +264,11 @@ object GdDao {
                 statement.executeQuery("SELECT measuretime,dick FROM dicks WHERE chatid=$chatId AND userid=${user.id}")
             if (!resultSet.next())
                 return null
-            return resultSet.getTimestamp(1) to resultSet.getInt(2)
+            val dick = resultSet.getInt(2)
+            if (dick == 0) {
+                return null
+            }
+            return resultSet.getTimestamp(1) to dick
         } finally {
             resultSet?.close()
             statement?.close()
@@ -303,7 +309,7 @@ object GdDao {
         try {
             connection = GdConnectionFactory.getConnection()
             statement = connection.createStatement()
-            resultSet = statement.executeQuery("select avg(dick) from dicks where chatid=$chatId")
+            resultSet = statement.executeQuery("select avg(dick) from dicks where chatid=$chatId and dick>0")
             if (!resultSet.next())
                 return null
             val averageDick = resultSet.getDouble(1).toInt()
@@ -311,6 +317,47 @@ object GdDao {
             return if (resultSet.wasNull()) null else averageDick
         } finally {
             resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun getUnDickDate(chatId: Long, user: User): Pair<Int,LocalDate> {
+        updateUserName(user)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet =
+                statement.executeQuery("SELECT dick,last_undick_time FROM dicks WHERE chatid=$chatId AND userid=${user.id}")
+            if (!resultSet.next())
+                return 0 to LocalDate.EPOCH
+            val dick = resultSet.getInt(1)
+            return dick to resultSet.getDate(2).toLocalDate()
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun unDick(chatId: Long, user: User, date: LocalDate) {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement("UPDATE dicks SET dick=0, last_undick_time=? WHERE chatid=? AND userid=?")
+                    .apply {
+                        setDate(1, Date.valueOf(date))
+                        setLong(2, chatId)
+                        setLong(3, user.id)
+                    }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
             statement?.close()
             connection?.close()
         }
@@ -335,6 +382,10 @@ object GdDao {
             val dickTop = ArrayList<DickTop>()
             while (resultSet.next() && (currentPlace <= 10 || !foundMe)) {
                 val dick = resultSet.getInt(1)
+                if (dick == 0) {
+                    // removed players that still kept in DB
+                    continue
+                }
                 if (dick != dickOnPlace) {
                     dickOnPlace = dick
                     currentPlace++
