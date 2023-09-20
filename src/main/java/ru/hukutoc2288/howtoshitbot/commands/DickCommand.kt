@@ -8,6 +8,7 @@ import ru.hukutoc2288.howtoshitbot.utils.DateUtils
 import java.sql.Timestamp
 import java.util.*
 import kotlin.math.max
+import ru.hukutoc2288.howtoshitbot.utils.pluralize
 
 object DickCommand : CommandFunction("dick", "сыграть в игру \"Песюн\"", arrayOf("песюн")) {
 
@@ -35,13 +36,13 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
                     if (nowCalendar.get(Calendar.SECOND) == 59) {
                         "сейчас"
                     } else {
-                        "${60 - tomorrowCalendar.get(Calendar.SECOND)} секунд"
+                        (60 - tomorrowCalendar.get(Calendar.SECOND)).pluralize("секунду","секунды","секунд")
                     }
                 } else {
-                    "${60 - tomorrowCalendar.get(Calendar.MINUTE)} минут"
+                    (60 - tomorrowCalendar.get(Calendar.MINUTE)).pluralize("минуту","минуты","минут")
                 }
             } else {
-                "${24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)} часов"
+                    (24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)).pluralize("час","часа","часов")
             }
 
         if (dickInfo == null) {
