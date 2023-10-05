@@ -8,6 +8,7 @@ import ru.hukutoc2288.howtoshitbot.utils.DateUtils
 import java.sql.Timestamp
 import java.util.*
 import kotlin.math.max
+import ru.hukutoc2288.howtoshitbot.commands.knb.KnbCommand
 import ru.hukutoc2288.howtoshitbot.utils.pluralize
 
 object DickCommand : CommandFunction("dick", "сыграть в игру \"Песюн\"", arrayOf("песюн")) {

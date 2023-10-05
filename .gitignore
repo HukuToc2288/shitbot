@@ -6,3 +6,4 @@
 /db.properties
 /.gradle/
 /build/
+/src/main/java/ru/hukutoc2288/howtoshitbot/commands/knb/anticheat/CustomKnbAntiCheat.kt

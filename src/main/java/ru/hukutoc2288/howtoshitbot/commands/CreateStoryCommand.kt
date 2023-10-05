@@ -37,7 +37,7 @@ class CreateStoryCommand : CommandFunction(
         val expireTimestamp = Timestamp(GregorianCalendar().apply {
             add(Calendar.SECOND, StoryUtils.storyLifetime)
         }.timeInMillis)
-        GdDao.createOrUpdateStory(message.chatId, message.from, expireTimestamp, argsLine)
+        GdDao.createOrUpdateStory(message.chatId, message.from, expireTimestamp, argsLine.replace("(@+)([0-9A-Za-z_])".toRegex(),"$1 $2"))
         val messageToSend = "${message.from.mention}, твоя история успешно ${
             if (storyExists)
                 "обновлена"

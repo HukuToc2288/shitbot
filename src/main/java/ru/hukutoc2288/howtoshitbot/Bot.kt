@@ -19,6 +19,7 @@ import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
 import kotlin.system.exitProcess
+import ru.hukutoc2288.howtoshitbot.commands.knb.KnbCommand
 
 
 val mapper: ObjectMapper = ObjectMapper().registerModule(
@@ -247,7 +248,7 @@ class Bot : TelegramLongPollingBot() {
         sendTextMessage(message.chatId, "Эта команда сейчас отключена. Она будет включена как только я захочу")
     }
 
-    fun onError(chatId: Long, text: String? = "неизвестный бибиб") {
+    fun onError(chatId: Long, text: String? = "неизвестный бибиб", replyId: Int = 0) {
         sendTextMessage(chatId, "Случился бибиб: $text")
     }
 

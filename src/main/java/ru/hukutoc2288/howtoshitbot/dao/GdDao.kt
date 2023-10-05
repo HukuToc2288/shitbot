@@ -12,13 +12,17 @@ import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
 import java.sql.Timestamp
+import java.time.Instant
 import java.time.LocalDate
+import java.util.SortedMap
+import java.util.TreeMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
-import kotlin.math.exp
+import ru.hukutoc2288.howtoshitbot.entinies.KnbHistoryPack
 
 object GdDao {
 
+    private const val maxKnbHistoryPack = 20
     private var aneksCount = 0
 
     // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
@@ -322,7 +326,7 @@ object GdDao {
         }
     }
 
-    fun getUnDickDate(chatId: Long, user: User): Pair<Int,LocalDate> {
+    fun getUnDickDate(chatId: Long, user: User): Pair<Int, LocalDate> {
         updateUserName(user)
         var connection: Connection? = null
         var statement: Statement? = null
@@ -535,6 +539,125 @@ object GdDao {
                         setLong(2, user.id)
                         setTimestamp(3, expireAfter)
                         setString(4, message)
+                    }
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    // 1>2
+    fun getKnbHistory(chatId: Long, biggestUserId: Long, smallestUserId: Long): SortedMap<Timestamp, KnbHistoryPack> {
+        assert(biggestUserId > smallestUserId)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
+                "SELECT time,games,result FROM knb_results WHERE chat_id=$chatId AND biggest_user_id=$biggestUserId AND smallest_user_id=$smallestUserId"
+            )
+            val resultPacks = TreeMap<Timestamp, KnbHistoryPack>()
+            while (resultSet.next()) {
+                resultPacks[resultSet.getTimestamp("time")] = KnbHistoryPack(
+                    resultSet.getInt("games"),
+                    resultSet.getInt("result")
+                )
+            }
+            return resultPacks
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun clearKnbHistory(chatId: Long, biggestUserId: Long, smallestUserId: Long) {
+        assert(biggestUserId > smallestUserId)
+        var connection: Connection? = null
+        var statement: Statement? = null
+
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement(
+                    "DELETE FROM knb_results WHERE chat_id=$chatId AND biggest_user_id=$biggestUserId AND smallest_user_id=$smallestUserId"
+                )
+            statement.executeUpdate()
+            connection.commit()
+        } finally {
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun getLastKnbPack(chatId: Long, biggestUserId: Long, smallestUserId: Long): Pair<Timestamp, KnbHistoryPack>? {
+        assert(biggestUserId > smallestUserId)
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet = statement.executeQuery(
+                "SELECT time,games,result FROM knb_results" +
+                        " WHERE chat_id=$chatId AND biggest_user_id=$biggestUserId AND smallest_user_id=$smallestUserId ORDER BY time LIMIT 1"
+            )
+            if (!resultSet.next()) {
+                return null
+            }
+            return resultSet.getTimestamp(1) to KnbHistoryPack(resultSet.getInt(2), resultSet.getInt(3))
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun storeKnbRound(chatId: Long, biggestUserId: Long, smallestUserId: Long, result: Int) {
+        assert(biggestUserId > smallestUserId)
+        assert(result in -1..1)
+        var connection: Connection? = null
+        var statement: Statement? = null
+
+        try {
+            val lastKnbPackData = getLastKnbPack(chatId, biggestUserId, smallestUserId)
+
+            val knbPackInsertTimestamp: Timestamp
+            val knbPackInsertGames: Int
+            val knbPackInsertResult: Int
+
+            if (lastKnbPackData == null || lastKnbPackData.second.currentGames == maxKnbHistoryPack) {
+                // создаём новую пачку, если старая заполнена или её вообще нет
+
+                knbPackInsertTimestamp = Timestamp.from(Instant.now())
+                knbPackInsertGames = 1
+                knbPackInsertResult = result
+            } else {
+                // будем добавлять игру в существующую
+                val currentPackTimestamp = lastKnbPackData.first
+                val lastKnbPack = lastKnbPackData.second
+
+                knbPackInsertTimestamp = currentPackTimestamp
+                knbPackInsertGames = lastKnbPack.currentGames + 1
+                knbPackInsertResult = lastKnbPack.result + result
+            }
+            connection = GdConnectionFactory.getConnection()
+            statement =
+                connection.prepareStatement(
+                    "INSERT INTO knb_results(chat_id, biggest_user_id, smallest_user_id, time, games, result) VALUES (?,?,?,?,?,?)" +
+                            " ON CONFLICT (chat_id, biggest_user_id, smallest_user_id, time) DO UPDATE" +
+                            " SET games=excluded.games, result=excluded.result"
+                ).apply {
+                        setLong(1, chatId)
+                        setLong(2, biggestUserId)
+                        setLong(3, smallestUserId)
+                        setTimestamp(4, knbPackInsertTimestamp)
+                        setInt(5, knbPackInsertGames)
+                        setInt(6, knbPackInsertResult)
                     }
             statement.executeUpdate()
             connection.commit()
