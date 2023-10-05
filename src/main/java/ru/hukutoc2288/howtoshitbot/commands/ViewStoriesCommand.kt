@@ -8,6 +8,8 @@ import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
 import ru.hukutoc2288.howtoshitbot.utils.StoryUtils
 import java.util.*
 import kotlin.collections.ArrayList
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup.SendMediaGroupBuilder
 
 class ViewStoriesCommand : CommandFunction(
     "stories",
