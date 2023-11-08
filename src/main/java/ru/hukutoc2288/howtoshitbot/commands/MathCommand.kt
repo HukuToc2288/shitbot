@@ -1,0 +1,38 @@
+package ru.hukutoc2288.howtoshitbot.commands
+
+import org.mariuszgromada.math.mxparser.Expression
+import org.mariuszgromada.math.mxparser.License
+import org.telegram.telegrambots.meta.api.objects.Message
+import ru.hukutoc2288.howtoshitbot.bot
+import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
+
+class MathCommand : CommandFunction(
+    "math",
+    "вычисление математических выражений (использует mXparser)",
+    arrayOf("математика", "посчитай", "сколько будет", "считай", "вычисли")
+) {
+    override val requiredFeatures: Int = Features.BASIC
+
+    init {
+        if (!License.checkIfUseTypeConfirmed()) {
+            License.iConfirmNonCommercialUse("t.me/howToShitBot")
+        }
+    }
+
+    override fun execute(message: Message, argsLine: String) {
+        val expression = Expression(argsLine)
+        val result = expression.calculate()
+        val answerString = if (result.isNaN()) {
+            "Не могу вычислить значение. Проверь правильность выражения. Также некоторые операции могут не поддерживаться"
+        } else if (result % 1.0 == 0.0) {
+            "%d".format(result.toInt())
+        } else {
+            "%.4f".format(result)
+        }
+        bot.sendTextMessage(
+            message.chatId,
+            answerString,
+            message.messageId
+        )
+    }
+}

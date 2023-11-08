@@ -17,18 +17,19 @@ dependencies {
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
         because("Too many CVEs")
     }
+    implementation(kotlin("stdlib-jdk8"))
+    
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-jackson:2.9.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.0")
     implementation("org.postgresql:postgresql:42.4.3")
-    testImplementation("org.slf4j:slf4j-log4j12:2.0.7")
-
     implementation("com.zaxxer:HikariCP:5.0.1")
+    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.2.1")
 
+    testImplementation("org.slf4j:slf4j-log4j12:2.0.7")
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.test {

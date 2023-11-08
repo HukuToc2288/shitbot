@@ -112,6 +112,7 @@ class Bot : TelegramLongPollingBot() {
             add(TimeCommand())
             add(CreateStoryCommand())
             add(ViewStoriesCommand())
+            add(MathCommand())
         }
         setCommandsFromList(commandList)
     }
