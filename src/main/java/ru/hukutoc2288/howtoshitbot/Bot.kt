@@ -185,7 +185,12 @@ class Bot : TelegramLongPollingBot() {
             sendTextMessage(chatId, "Я не знаю такой команды... Используй /help")
             return
         }
-        println(message)
+        try {
+            println(message)
+        } catch (e: Exception){
+            println(e.message)
+            // TODO: somehow sometime print can break with sudo command
+        }
         commandAndArguments.first.execute(message, commandAndArguments.second)
     }
 
