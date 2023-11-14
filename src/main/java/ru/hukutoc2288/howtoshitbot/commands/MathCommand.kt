@@ -16,6 +16,8 @@ class MathCommand : CommandFunction(
 ) {
     override val requiredFeatures: Int = Features.BASIC
 
+
+
     init {
         if (!License.checkIfUseTypeConfirmed()) {
             License.iConfirmNonCommercialUse("t.me/howToShitBot")
@@ -50,6 +52,7 @@ class MathCommand : CommandFunction(
 
         synchronized(lock) {
             if (!shouldPrintMessage) {
+                mXparser.resetCancelCurrentCalculationFlag()
                 return
             }
             shouldPrintMessage = false
