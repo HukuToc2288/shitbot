@@ -7,7 +7,7 @@ import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
 /**
  * Simple command which sending the same text on every execution
  */
-class SimpleSendTextCommand(command: String,
+open class SimpleSendTextCommand(command: String,
                             description: String,
                             private val text: String,
                             aliases: Array<String> = arrayOf(),
