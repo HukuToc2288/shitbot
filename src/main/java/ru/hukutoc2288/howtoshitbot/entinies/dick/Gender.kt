@@ -19,7 +19,7 @@ class Gender(
             val patternString = thingPattern.substring( (thingPattern.length) / 2).toCharArray()
             IntArray(patternString.size) { digit ->
                 val segmentOrder = patternString[digit].toString().toInt()
-                if (segmentOrder > maxOrder) {
+                if (segmentOrder > tempMaxOrder) {
                     tempMaxOrder = segmentOrder
                 }
                 segmentOrder
@@ -58,7 +58,7 @@ class Gender(
 
         // calculate scales for thing
         main@ while (remainingSegments > 0) {
-            for (i in maxOrder..1) {
+            for (i in maxOrder downTo 1) {
                 for (j in sizePattern.indices) {
                     if (sizePattern[j] == i) {
                         segmentsToIncrease.add(j)
