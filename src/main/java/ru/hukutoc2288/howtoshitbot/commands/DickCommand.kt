@@ -9,11 +9,20 @@ import java.sql.Timestamp
 import java.util.*
 import kotlin.math.max
 import ru.hukutoc2288.howtoshitbot.commands.knb.KnbCommand
+import ru.hukutoc2288.howtoshitbot.entinies.dick.Gender
 import ru.hukutoc2288.howtoshitbot.utils.pluralize
 
 object DickCommand : CommandFunction("dick", "сыграть в игру \"Песюн\"", arrayOf("песюн")) {
 
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
+
+    private val genderStub = Gender(
+        0,
+        "твой песюн /вырос/скоротился/ на %s см. Теперь его длина %s см",
+        "ты сегодня уже играл, и длина твоего песюна %s см",
+        "8=D010"
+    )
+
 
     override fun execute(message: Message, argsLine: String) {
         val chatId = message.chatId
@@ -37,13 +46,13 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
                     if (nowCalendar.get(Calendar.SECOND) == 59) {
                         "сейчас"
                     } else {
-                        (60 - tomorrowCalendar.get(Calendar.SECOND)).pluralize("секунду","секунды","секунд")
+                        (60 - tomorrowCalendar.get(Calendar.SECOND)).pluralize("секунду", "секунды", "секунд")
                     }
                 } else {
-                    (60 - tomorrowCalendar.get(Calendar.MINUTE)).pluralize("минуту","минуты","минут")
+                    (60 - tomorrowCalendar.get(Calendar.MINUTE)).pluralize("минуту", "минуты", "минут")
                 }
             } else {
-                    (24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)).pluralize("час","часа","часов")
+                (24 - tomorrowCalendar.get(Calendar.HOUR_OF_DAY)).pluralize("час", "часа", "часов")
             }
 
         if (dickInfo == null) {
@@ -61,7 +70,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             // already measured branch
             bot.sendHtmlMessage(
                 chatId,
-                "$mention, ты сегодня уже играл, и длина твоего песюна ${buildTextDick(dickInfo.second)}. Продолжай играть через $nextTimeString",
+                "$mention, ${genderStub.buildInfoText(dickInfo.second)}. Продолжай играть через $nextTimeString",
                 message.messageId
             )
             return
@@ -76,11 +85,12 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             else
                 it
         }
+        val newDick = dickInfo.second + dickChange
         bot.sendHtmlMessage(
             chatId,
-            "$mention, твой песюн ${if (dickChange > 0) "вырос на $dickChange" else "скоротился на ${-dickChange}"} см.\n" +
-                    "Теперь его длина ${buildTextDick(dickInfo.second + dickChange)}. Продолжай играть через $nextTimeString" +
-                    if (dickInfo.second + dickChange <= KnbCommand.bet &&
+            "$mention, ${genderStub.buildChangeText(dickChange, newDick)}. " +
+                    "Продолжай играть через $nextTimeString" +
+                    if (newDick <= KnbCommand.bet &&
                         KnbCommand.waitingPlayers[chatId]?.first?.id == user.id && KnbCommand.waitingPlayers.remove(
                             chatId
                         ) != null
@@ -91,12 +101,7 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
                     },
             message.messageId
         )
-        GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickInfo.second + dickChange)
+        GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), newDick)
         return
-    }
-
-    private fun buildTextDick(dickLength: Int): String{
-        val segments = (dickLength)/100+1
-        return "8${"=".repeat(segments)}D $dickLength см"
     }
 }
