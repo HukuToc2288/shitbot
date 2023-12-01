@@ -15,7 +15,6 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Locale
 import java.util.SortedMap
 import java.util.TreeMap
 import kotlin.collections.ArrayList
@@ -860,6 +859,33 @@ object GdDao {
             connection.commit()
         } finally {
             ac.closeResources()
+        }
+    }
+
+    fun getWordsStats(chatId: Long, userId: Long, maxDays: Long): Map<LocalDate, WordsInfo> {
+        var connection: Connection? = null
+        var statement: PreparedStatement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            val minDate = LocalDate.now().minusDays(maxDays)
+            statement = connection.prepareStatement(
+                "SELECT info_date,total_words,profanity_words FROM words_daily" +
+                        " WHERE chat_id=$chatId AND user_id=$userId AND info_date >= ?"
+            )
+            statement.setDate(1, Date.valueOf(minDate))
+            if (!statement.execute())
+                return emptyMap()
+            resultSet = statement.resultSet
+            val map = HashMap<LocalDate, WordsInfo>()
+            while (resultSet.next()) {
+                map[resultSet.getDate(1).toLocalDate()] = WordsInfo(resultSet.getInt(2), resultSet.getInt(3))
+            }
+            return map
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
         }
     }
 }

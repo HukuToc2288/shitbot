@@ -118,6 +118,7 @@ class Bot : TelegramLongPollingBot() {
             add(MathCommand())
             add(IdCommand())
             add(GenderCommand())
+            add(WordsStatsCommand())
         }
         setCommandsFromList(commandList)
     }
