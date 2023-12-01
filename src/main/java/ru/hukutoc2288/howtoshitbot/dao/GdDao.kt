@@ -834,6 +834,10 @@ object GdDao {
         }
     }
 
+    fun flushWordsData() {
+        storeWordsDataInternal(pendingWordsData)
+    }
+
     private fun storeWordsDataInternal(wordsData: Map<ChatUserDate, WordsInfo>) {
         val connection: Connection?
         val statement: PreparedStatement?

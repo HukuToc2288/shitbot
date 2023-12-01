@@ -16,6 +16,8 @@ class WordsStatsCommand : CommandFunction("stat", "моя статистика �
     private val maxDays = 14L
 
     override fun execute(message: Message, argsLine: String) {
+        GdDao.flushWordsData()
+
         val chatId = message.chatId
         val replyUser = message.replyToMessage?.from
         val userId = message.from.id
