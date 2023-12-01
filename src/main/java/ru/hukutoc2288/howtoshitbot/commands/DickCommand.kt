@@ -86,7 +86,6 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             chatId,
             "$mention, ${gender.buildChangeText(dickChange, newDick)} " +
                     "Продолжай играть через $nextTimeString\n\n" +
-                    "Теперь ты можешь мерить не только песюн! Будь мужиком – смени пол при помощи команды /gender" +
                     if (newDick <= KnbCommand.bet &&
                         KnbCommand.waitingPlayers[chatId]?.first?.id == user.id && KnbCommand.waitingPlayers.remove(
                             chatId
