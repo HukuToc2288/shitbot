@@ -6,27 +6,33 @@ import ru.hukutoc2288.howtoshitbot.bot
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
 import ru.hukutoc2288.howtoshitbot.entinies.words.WordsInfo
 import ru.hukutoc2288.howtoshitbot.utils.CommandFunction
+import ru.hukutoc2288.howtoshitbot.utils.displayName
 import ru.hukutoc2288.howtoshitbot.utils.mention
 import ru.hukutoc2288.howtoshitbot.utils.pluralize
 
-class WordsStatsCommand : CommandFunction("statme", "моя статистика слов и матов", arrayOf("моя стата")) {
+class WordsStatsCommand : CommandFunction("stat", "моя статистика слов и матов", arrayOf("моя стата")) {
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
-    private val maxDays = 14
+    private val maxDays = 14L
 
     override fun execute(message: Message, argsLine: String) {
         val chatId = message.chatId
+        val replyUser = message.replyToMessage?.from
         val userId = message.from.id
         val replyId = message.messageId
         val mention = message.from.mention
 
-        val wordsInfos = GdDao.getWordsStats(chatId, userId, 14)
+        val wordsInfos = GdDao.getWordsStats(chatId, replyUser?.id ?: userId, maxDays)
 
         val wordsInfoToday = wordsInfos[LocalDate.now()]
         if (wordsInfoToday == null) {
             bot.sendTextMessage(
                 chatId,
-                "$mention, на тебя пока нет статы. Если это твоё первое сообщение, скорее всего она появится в течение минуты",
+                if (replyUser != null) {
+                    "На участника ${replyUser.displayName} пока нет статы. Если это его первое сообщение, скорее всего она появится в течение минуты"
+                } else {
+                    "$mention, на тебя пока нет статы. Если это твоё первое сообщение, скорее всего она появится в течение минуты"
+                },
 
             )
             return
@@ -39,7 +45,11 @@ class WordsStatsCommand : CommandFunction("statme", "моя статистика
         }
         bot.sendTextMessage(
             chatId,
-            "$mention, вот твоя стата количества слов в чате:\n" +
+            if (replyUser != null) {
+                "Вот стата количества слов в чате участника ${replyUser.displayName}:\n"
+            } else {
+                "$mention, вот твоя стата количества слов в чате:\n"
+            } +
                     "сегодня: ${createWordsInfoText(wordsInfoToday)}\n" +
                     "вчера: ${createWordsInfoText(wordsInfoYesterday)}\n" +
                     "за ${wordsInfos.size.pluralize("день", "дня", "дней")}: ${createWordsInfoText(wordsInfoTotal)}",
