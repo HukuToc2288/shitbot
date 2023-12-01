@@ -13,6 +13,7 @@ import kotlin.collections.ArrayList
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import java.time.LocalDate
 import org.telegram.telegrambots.meta.api.objects.User
 import ru.hukutoc2288.howtoshitbot.commands.*
 import ru.hukutoc2288.howtoshitbot.dao.GdDao
@@ -20,6 +21,7 @@ import ru.hukutoc2288.howtoshitbot.utils.*
 import ru.hukutoc2288.howtoshitbot.utils.StringUtils.dedupe
 import kotlin.system.exitProcess
 import ru.hukutoc2288.howtoshitbot.commands.knb.KnbCommand
+import ru.hukutoc2288.howtoshitbot.utils.words.WordsCounter
 
 
 val mapper: ObjectMapper = ObjectMapper().registerModule(
@@ -62,6 +64,7 @@ class Bot : TelegramLongPollingBot() {
 
     private val commandList: ArrayList<CommandFunction>
     private val howToShitCommand: CommandFunction = HowToShitCommand()
+    private val wordsCounter = WordsCounter()
 
     init {
         BotProperties.update()
@@ -146,6 +149,10 @@ class Bot : TelegramLongPollingBot() {
         val messageText = message.text
 
         if (!(BotProperties.maintaining && chatId != BotProperties.debugChatId)) {
+            // raw text processing block
+
+            // TODO: process profanity
+            val wordsInfo = wordsCounter.countWords(chatId,message.from.id, LocalDate.now(),messageText)
             onGdMessageHooked(message)
         }
 

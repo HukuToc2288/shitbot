@@ -9,11 +9,13 @@ import ru.hukutoc2288.howtoshitbot.utils.GdConnectionFactory
 import ru.hukutoc2288.howtoshitbot.utils.displayName
 import java.sql.Connection
 import java.sql.Date
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import java.util.SortedMap
 import java.util.TreeMap
 import kotlin.collections.ArrayList
@@ -21,11 +23,20 @@ import kotlin.collections.HashSet
 import ru.hukutoc2288.howtoshitbot.entinies.KnbHistoryPack
 import ru.hukutoc2288.howtoshitbot.entinies.dick.DisplayGender
 import ru.hukutoc2288.howtoshitbot.entinies.dick.Gender
+import ru.hukutoc2288.howtoshitbot.entinies.words.ChatUserDate
+import ru.hukutoc2288.howtoshitbot.entinies.words.WordsInfo
 
 object GdDao {
 
     private const val maxKnbHistoryPack = 20
     private var aneksCount = 0
+
+    private val pendingWordsData = HashMap<ChatUserDate, WordsInfo>()
+    private var lastWordsStoreTime = System.currentTimeMillis()
+    private var currentWordsDataUpdates = 0
+
+    private const val MAX_WORDS_DATA_UPDATES = 20
+    private const val MAX_WORDS_DATA_LIFETIME = 30_000L
 
     init {
         DbHelper.init()
@@ -793,10 +804,60 @@ object GdDao {
         try {
             connection = GdConnectionFactory.getConnection().autoClose(ac)
             statement = connection.createStatement().autoClose(ac)
-            val result = statement.executeUpdate("INSERT INTO users_genders(chat_id,user_id,gender_id) VALUES ($chatId,$userId,$genderId)" +
-                    " ON CONFLICT (chat_id,user_id) DO UPDATE SET gender_id = excluded.gender_id")
+            val result = statement.executeUpdate(
+                "INSERT INTO users_genders(chat_id,user_id,gender_id) VALUES ($chatId,$userId,$genderId)" +
+                        " ON CONFLICT (chat_id,user_id) DO UPDATE SET gender_id = excluded.gender_id"
+            )
             connection.commit()
             return result > 0
+        } finally {
+            ac.closeResources()
+        }
+    }
+
+    fun updateWordsCount(chatId: Long, userId: Long, date: LocalDate, wordsInfo: WordsInfo) {
+        val wordsDataKey = ChatUserDate(chatId, userId, date)
+        val existingData = pendingWordsData[wordsDataKey]
+        if (existingData != null) {
+            existingData.wordsCount += wordsInfo.wordsCount
+            existingData.profanityCount += wordsInfo.profanityCount
+        } else {
+            pendingWordsData[wordsDataKey] = wordsInfo
+        }
+        currentWordsDataUpdates++
+        val timeNow = System.currentTimeMillis()
+        if (timeNow > lastWordsStoreTime + MAX_WORDS_DATA_LIFETIME || currentWordsDataUpdates > MAX_WORDS_DATA_UPDATES) {
+            // push data to database
+            storeWordsDataInternal(pendingWordsData)
+            pendingWordsData.clear()
+            lastWordsStoreTime = timeNow
+            currentWordsDataUpdates = 0
+        }
+    }
+
+    private fun storeWordsDataInternal(wordsData: Map<ChatUserDate, WordsInfo>) {
+        val connection: Connection?
+        val statement: PreparedStatement?
+        val ac = AutoClose()
+        try {
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.prepareStatement(
+                "INSERT INTO words_daily" +
+                        " (chat_id,user_id,info_date,total_words,profanity_words) VALUES (?,?,?,?,?)" +
+                        " ON CONFLICT(chat_id,user_id,info_date) DO UPDATE SET" +
+                        " total_words=words_daily.total_words+excluded.total_words," +
+                        " profanity_words=words_daily.profanity_words+excluded.profanity_words"
+            ).autoClose(ac)
+            wordsData.forEach { (key, value) ->
+                statement.setLong(1, key.chatId)
+                statement.setLong(2, key.userId)
+                statement.setDate(3, Date.valueOf(key.date))
+                statement.setInt(4, value.wordsCount)
+                statement.setInt(5, value.profanityCount)
+                statement.addBatch()
+            }
+            statement.executeBatch()
+            connection.commit()
         } finally {
             ac.closeResources()
         }

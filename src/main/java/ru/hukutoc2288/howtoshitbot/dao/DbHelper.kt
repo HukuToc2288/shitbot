@@ -35,6 +35,20 @@ object DbHelper {
                         "gender_id SMALLINT NOT NULL," +
                         "PRIMARY KEY (chat_id,user_id))"
             )
+            statement.addBatch("CREATE TABLE IF NOT EXISTS profanity_limits (" +
+                    "chat_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "words_limit INTEGER NOT NULL," +
+                    "PRIMARY KEY (chat_id,user_id))"
+            )
+            statement.addBatch("CREATE TABLE IF NOT EXISTS words_daily (" +
+                    "chat_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "info_date DATE NOT NULL," +
+                    "total_words INTEGER NOT NULL," +
+                    "profanity_words INTEGER NOT NULL," +
+                    "PRIMARY KEY (chat_id,user_id,info_date))"
+            )
             statement.executeBatch()
             connection.commit()
         } finally {
