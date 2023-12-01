@@ -19,11 +19,17 @@ import java.util.TreeMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import ru.hukutoc2288.howtoshitbot.entinies.KnbHistoryPack
+import ru.hukutoc2288.howtoshitbot.entinies.dick.DisplayGender
+import ru.hukutoc2288.howtoshitbot.entinies.dick.Gender
 
 object GdDao {
 
     private const val maxKnbHistoryPack = 20
     private var aneksCount = 0
+
+    init {
+        DbHelper.init()
+    }
 
     // TODO: 02.12.2022 так как теперь эта база не только для пидора дня, нужно поменять все названия
     fun getChatById(chatId: Long): GdChat? {
@@ -50,7 +56,6 @@ object GdDao {
             statement?.close()
             connection?.close()
         }
-
     }
 
     // TODO: у меня был прикольный итератор для этого в другом проекте, надо его перенести сюда
@@ -652,18 +657,148 @@ object GdDao {
                             " ON CONFLICT (chat_id, biggest_user_id, smallest_user_id, time) DO UPDATE" +
                             " SET games=excluded.games, result=excluded.result"
                 ).apply {
-                        setLong(1, chatId)
-                        setLong(2, biggestUserId)
-                        setLong(3, smallestUserId)
-                        setTimestamp(4, knbPackInsertTimestamp)
-                        setInt(5, knbPackInsertGames)
-                        setInt(6, knbPackInsertResult)
-                    }
+                    setLong(1, chatId)
+                    setLong(2, biggestUserId)
+                    setLong(3, smallestUserId)
+                    setTimestamp(4, knbPackInsertTimestamp)
+                    setInt(5, knbPackInsertGames)
+                    setInt(6, knbPackInsertResult)
+                }
             statement.executeUpdate()
             connection.commit()
         } finally {
             statement?.close()
             connection?.close()
+        }
+    }
+
+    fun getDisplayGenders(): List<DisplayGender> {
+        var connection: Connection? = null
+        var statement: Statement? = null
+        var resultSet: ResultSet? = null
+        try {
+            connection = GdConnectionFactory.getConnection()
+            statement = connection.createStatement()
+            resultSet =
+                statement.executeQuery("SELECT id,name FROM genders")
+            val genders = ArrayList<DisplayGender>()
+            while (resultSet.next()) {
+                genders.add(
+                    DisplayGender(
+                        resultSet.getInt("id"),
+                        resultSet.getString("name")
+                    )
+                )
+            }
+            return genders
+        } finally {
+            resultSet?.close()
+            statement?.close()
+            connection?.close()
+        }
+    }
+
+    fun getGenderName(chatId: Long, user: User): String {
+        var connection: Connection?
+        var statement: Statement?
+        var resultSet: ResultSet?
+        val ac = AutoClose()
+        try {
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            val query = "SELECT genders.name FROM users_genders" +
+                    " INNER JOIN genders ON users_genders.gender_id = genders.id" +
+                    " where chat_id=$chatId and user_id=${user.id}"
+            resultSet = statement.executeQuery(query).autoClose(ac)
+            if (resultSet.next()) {
+                return resultSet.getString(1)
+            }
+            // update gender and go retry
+            ac.closeResources()
+
+            setDefaultGender(chatId, user.id)
+
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            resultSet = statement.executeQuery(query).autoClose(ac)
+            if (!resultSet.next()) {
+                throw NullPointerException("Не удалось получить гендер!")
+            }
+            return resultSet.getString(1)
+        } finally {
+            ac.closeResources()
+        }
+    }
+
+    private fun setDefaultGender(chatId: Long, userId: Long) {
+        val connection: Connection?
+        val statement: Statement?
+        val ac = AutoClose()
+        try {
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            statement.execute("INSERT INTO users_genders(chat_id,user_id,gender_id) VALUES ($chatId,$userId,0) ON CONFLICT DO NOTHING")
+            connection.commit()
+        } finally {
+            ac.closeResources()
+        }
+    }
+
+    fun getGender(chatId: Long, userId: Long): Gender {
+        var connection: Connection?
+        var statement: Statement?
+        var resultSet: ResultSet?
+        val ac = AutoClose()
+        try {
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            val query = "SELECT genders.id,genders.change_text,genders.info_text,genders.thing FROM users_genders" +
+                    " INNER JOIN genders ON users_genders.gender_id = genders.id" +
+                    " where chat_id=$chatId and user_id=${userId}"
+            resultSet = statement.executeQuery(query).autoClose(ac)
+            if (resultSet.next()) {
+                return Gender(
+                    resultSet.getInt(1),
+                    resultSet.getString(2),
+                    resultSet.getString(3),
+                    resultSet.getString(4)
+                )
+            }
+            // update gender and go retry
+            ac.closeResources()
+
+            setDefaultGender(chatId, userId)
+
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            resultSet = statement.executeQuery(query).autoClose(ac)
+            if (!resultSet.next()) {
+                throw NullPointerException("Не удалось получить гендер!")
+            }
+            return Gender(
+                resultSet.getInt(1),
+                resultSet.getString(2),
+                resultSet.getString(3),
+                resultSet.getString(4)
+            )
+        } finally {
+            ac.closeResources()
+        }
+    }
+
+    fun setGender(chatId: Long, userId: Long, genderId: Int): Boolean {
+        val connection: Connection?
+        val statement: Statement?
+        val ac = AutoClose()
+        try {
+            connection = GdConnectionFactory.getConnection().autoClose(ac)
+            statement = connection.createStatement().autoClose(ac)
+            val result = statement.executeUpdate("INSERT INTO users_genders(chat_id,user_id,gender_id) VALUES ($chatId,$userId,$genderId)" +
+                    " ON CONFLICT (chat_id,user_id) DO UPDATE SET gender_id = excluded.gender_id")
+            connection.commit()
+            return result > 0
+        } finally {
+            ac.closeResources()
         }
     }
 }

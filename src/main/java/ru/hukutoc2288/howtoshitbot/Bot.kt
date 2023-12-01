@@ -114,6 +114,7 @@ class Bot : TelegramLongPollingBot() {
             add(ViewStoriesCommand())
             add(MathCommand())
             add(IdCommand())
+            add(GenderCommand())
         }
         setCommandsFromList(commandList)
     }
@@ -131,8 +132,9 @@ class Bot : TelegramLongPollingBot() {
             if (update.hasMessage() && update.message.hasText()) {
                 processMessage(update.message)
             } else if (update.hasCallbackQuery()) {
-                // играем в КНБ
-                KnbCommand.processCallback(update.callbackQuery)
+                commandList.forEach {
+                    it.processCallback(update.callbackQuery)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

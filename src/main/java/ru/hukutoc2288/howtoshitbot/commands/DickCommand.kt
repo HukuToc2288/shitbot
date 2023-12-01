@@ -16,13 +16,6 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
 
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
-    private val genderStub = Gender(
-        0,
-        "твой песюн /вырос/скоротился/ на %s см. Теперь его длина %s см",
-        "ты сегодня уже играл, и длина твоего песюна %s см",
-        "8=D010"
-    )
-
 
     override fun execute(message: Message, argsLine: String) {
         val chatId = message.chatId
@@ -66,11 +59,14 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
             GdDao.updateDick(chatId, user, Timestamp(nowCalendar.timeInMillis), dickSize)
             return
         }
+
+        val gender = GdDao.getGender(chatId,user.id)
+
         if (DateUtils.isToday(dickInfo.first)) {
             // already measured branch
             bot.sendHtmlMessage(
                 chatId,
-                "$mention, ${genderStub.buildInfoText(dickInfo.second)}. Продолжай играть через $nextTimeString",
+                "$mention, ${gender.buildInfoText(dickInfo.second)} Продолжай играть через $nextTimeString",
                 message.messageId
             )
             return
@@ -88,8 +84,9 @@ object DickCommand : CommandFunction("dick", "сыграть в игру \"Пе�
         val newDick = dickInfo.second + dickChange
         bot.sendHtmlMessage(
             chatId,
-            "$mention, ${genderStub.buildChangeText(dickChange, newDick)}. " +
-                    "Продолжай играть через $nextTimeString" +
+            "$mention, ${gender.buildChangeText(dickChange, newDick)} " +
+                    "Продолжай играть через $nextTimeString\n\n" +
+                    "Теперь ты можешь мерить не только песюн! Будь мужиком – смени пол при помощи команды /gender" +
                     if (newDick <= KnbCommand.bet &&
                         KnbCommand.waitingPlayers[chatId]?.first?.id == user.id && KnbCommand.waitingPlayers.remove(
                             chatId
