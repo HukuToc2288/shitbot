@@ -10,7 +10,7 @@ import ru.hukutoc2288.howtoshitbot.utils.displayName
 import ru.hukutoc2288.howtoshitbot.utils.mention
 import ru.hukutoc2288.howtoshitbot.utils.pluralize
 
-class WordsStatsCommand : CommandFunction("stat", "моя статистика слов и матов", arrayOf("моя стата")) {
+class WordsStatsCommand : CommandFunction("stats", "моя статистика слов и матов", arrayOf("моя стата")) {
     override val requiredFeatures: Int = Features.BASIC or Features.DB_RW
 
     private val maxDays = 14L
