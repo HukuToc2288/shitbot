@@ -61,6 +61,8 @@ class WordsStatsCommand : CommandFunction("stats", "моя статистика 
 
     private fun createWordsInfoText(wordsInfo: WordsInfo?): String {
         wordsInfo ?: return "нет данных"
-        return "${wordsInfo.wordsCount} (${wordsInfo.profanityCount.pluralize("мат", "мата", "матов")})"
+        // todo стата матов выключена в связи с многочисленными проблемами
+        //return "${wordsInfo.wordsCount} (${wordsInfo.profanityCount.pluralize("мат", "мата", "матов")})"
+        return "${wordsInfo.wordsCount}"
     }
 }
