@@ -42,8 +42,8 @@ class WordsStatsCommand : CommandFunction("stats", "моя статистика 
         val wordsInfoYesterday = wordsInfos.get(LocalDate.now().minusDays(1))
         val wordsInfoTotal = WordsInfo(0, 0)
         for (info in wordsInfos.values) {
-            wordsInfoTotal.wordsCount = info.wordsCount
-            wordsInfoTotal.profanityCount = info.profanityCount
+            wordsInfoTotal.wordsCount += info.wordsCount
+            wordsInfoTotal.profanityCount += info.profanityCount
         }
         bot.sendTextMessage(
             chatId,

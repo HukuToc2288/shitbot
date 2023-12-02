@@ -34,7 +34,7 @@ class WordsCounter {
             return false
         }
         val lowerCaseWord = word.lowercase(Locale.getDefault())
-        if (lowerCaseWord.matches("ху[йиеюёя]".toRegex())){
+        if (lowerCaseWord.contains("ху[йиеюёя]".toRegex())){
             return true
         }
         if (lowerCaseWord.contains("пизд")) {
@@ -44,7 +44,7 @@ class WordsCounter {
             return true
         }
         // this one is hard to filter
-        if (lowerCaseWord.matches("[ъьйаяоёуюэеиы][её]б".toRegex())) {
+        if (lowerCaseWord.contains("[ъьйаяоёуюэеиы][её]б".toRegex())) {
             return true
         }
         return false

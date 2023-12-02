@@ -827,15 +827,15 @@ object GdDao {
         val timeNow = System.currentTimeMillis()
         if (timeNow > lastWordsStoreTime + MAX_WORDS_DATA_LIFETIME || currentWordsDataUpdates > MAX_WORDS_DATA_UPDATES) {
             // push data to database
-            storeWordsDataInternal(pendingWordsData)
-            pendingWordsData.clear()
-            lastWordsStoreTime = timeNow
-            currentWordsDataUpdates = 0
+            flushWordsData()
         }
     }
 
     fun flushWordsData() {
         storeWordsDataInternal(pendingWordsData)
+        pendingWordsData.clear()
+        lastWordsStoreTime = System.currentTimeMillis()
+        currentWordsDataUpdates = 0
     }
 
     private fun storeWordsDataInternal(wordsData: Map<ChatUserDate, WordsInfo>) {
