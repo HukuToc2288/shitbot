@@ -690,7 +690,7 @@ object GdDao {
             connection = GdConnectionFactory.getConnection()
             statement = connection.createStatement()
             resultSet =
-                statement.executeQuery("SELECT id,name FROM genders")
+                statement.executeQuery("SELECT id,name FROM genders ORDER BY id")
             val genders = ArrayList<DisplayGender>()
             while (resultSet.next()) {
                 genders.add(
